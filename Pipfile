@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pylint = "*"
 
 [packages]
 falcon = "*"
@@ -15,6 +16,8 @@ pytest = "*"
 pytest-cov = "*"
 pre-commit = "*"
 pylint = "*"
+requests = "*"
+requests-oauthlib = "*"
 
 [requires]
 python_version = "3.7"
