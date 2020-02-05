@@ -1,7 +1,6 @@
 """Bluebeam module"""
 #pylint: disable=too-few-public-methods, invalid-name
 import os
-import json
 import requests
 from oauthlib.oauth2 import LegacyApplicationClient
 from requests_oauthlib import OAuth2Session
@@ -33,7 +32,7 @@ def get_projects(access_token):
         gets all project in bluebeam
     """
     response = requests.get(BASE_URL + "/projects?api_key=" + access_token)
-    return json.loads(response.text)
+    return response.json()
 
 def create_project(access_token, project_name):
     """
@@ -45,7 +44,7 @@ def create_project(access_token, project_name):
                 "Notification": True,
                 "Restricted": True
             })
-    return json.loads(response.text)
+    return response.json()
 
 def create_folder(access_token, project_id, folder_name, comment='', parent_folder_id=0):
     """
@@ -58,7 +57,7 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
                         "ParentFolderId": parent_folder_id,
                         "Comment": comment
                     })
-    return json.loads(response.text)
+    return response.json()
 
 def get_folders(access_token, project_id):
     """
@@ -66,7 +65,7 @@ def get_folders(access_token, project_id):
     """
     response = requests.get(BASE_URL + "/projects/" + project_id +\
                     "/folders?api_key=" + access_token)
-    return json.loads(response.text)
+    return response.json()
 
 def upload_file(access_token, project_id, filepath, folder_id):
     """
@@ -82,7 +81,7 @@ def upload_file(access_token, project_id, filepath, folder_id):
                         "Name": os.path.basename(filepath),
                         "ParentFolderId": folder_id
                     })
-    response_json = json.loads(response.text)
+    response_json = response.json()
     upload_url = response_json['UploadUrl']
     file_id = response_json['Id']
     upload_content_type = response_json['UploadContentType']
