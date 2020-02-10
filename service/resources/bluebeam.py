@@ -44,7 +44,7 @@ def create_project(access_token, project_name):
                 "Notification": True,
                 "Restricted": True
             })
-    return response.json()
+    return response.json()['Id']
 
 def create_folder(access_token, project_id, folder_name, comment='', parent_folder_id=0):
     """
@@ -57,7 +57,7 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
                         "ParentFolderId": parent_folder_id,
                         "Comment": comment
                     })
-    return response.json()
+    return response.json()['Id']
 
 def get_folders(access_token, project_id):
     """
