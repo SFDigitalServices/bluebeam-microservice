@@ -77,15 +77,18 @@ def test_create_project(client, mock_env_access_key):
             mock_fetch_token.return_value = mocks.FETCH_TOKEN_RESPONSE
 
             with patch('service.resources.bluebeam.requests.post') as mock_post:
-                fake_post_responses = [Mock(), Mock(), Mock(), Mock()]
+                fake_post_responses = [Mock()] * 10
                 # create project
                 fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
-                # create folder
-                fake_post_responses[1].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+                # create folders
+                i = 1
+                while i < 8:
+                    fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+                    i += 1
                 # initiate upload
-                fake_post_responses[2].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+                fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
                 # confirm upload
-                fake_post_responses[3].status_code.return_value = 204
+                fake_post_responses[9].status_code.return_value = 204
                 mock_post.side_effect = fake_post_responses
 
                 with patch('service.resources.bluebeam.requests.put') as mock_put:
