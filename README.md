@@ -1,11 +1,5 @@
-# SFDS microservice.py [![CircleCI](https://badgen.net/circleci/github/SFDigitalServices/microservice-py/master)](https://circleci.com/gh/SFDigitalServices/microservice-py) [![Coverage Status](https://coveralls.io/repos/github/SFDigitalServices/microservice-py/badge.svg?branch=master)](https://coveralls.io/github/SFDigitalServices/microservice-py?branch=master)
-SFDS microservice.py jumpstarts your next python-based microservice. It consists of a skeleton boilerplate make up of
-* [falcon](https://falconframework.org/): bare-metal Python web API framework 
-* [gunicorn](https://gunicorn.org/): Python WSGI HTTP Server for UNIX
-* [pytest](https://docs.pytest.org/en/latest/): Python testing tool 
-* [pylint](https://www.pylint.org/): code analysis for Python
-* [sentry](https://sentry.io/): error tracking tool
-* [jsend](https://github.com/omniti-labs/jsend):  a specification for a simple, no-frills, JSON based format for application-level communication
+# SFDS bluebeam-microservice.py [![CircleCI](https://circleci.com/gh/SFDigitalServices/bluebeam-microservice.svg?style=svg)](https://circleci.com/gh/SFDigitalServices/bluebeam-microservice) [![Coverage Status](https://coveralls.io/repos/github/SFDigitalServices/bluebeam-microservice-py/badge.svg?branch=master)](https://coveralls.io/github/SFDigitalServices/bluebeam-microservice-py?branch=master)
+SFDS bluebeam-microservice.py was developed for CCSF interactions with Bluebeam.
 
 ## Requirement
 * Python3 
