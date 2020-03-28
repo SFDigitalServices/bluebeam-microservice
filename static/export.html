@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>Bluebeam Export</title>
+        <link rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+            crossorigin="anonymous">
+    </head>
+    <body>
+        <div class="container">
+            <div class="row h-100">
+                <div class="col-sm-12 my-auto">
+                    <div class="mx-auto text-center" style="display:block; width:300px;">
+                        Export form submissions to Bluebeam
+                    </div>
+                    <div class="mx-auto text-center" style="display:block; width:300px;">
+                        <button
+                        type="button"
+                        onclick="window.location.href='https://authserver.bluebeam.com/auth/oauth/authorize?response_type=code&client_id=62d12379-0ffd-439f-8da4-5d6e595740a2&scope=full_prime&redirect_uri=http://127.0.0.1:8000/export&state=foo';"
+                        class="btn btn-primary"
+                        >export</button>        
+                    </div>        
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

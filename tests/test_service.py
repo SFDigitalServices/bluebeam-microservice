@@ -1,13 +1,15 @@
 # pylint: disable=redefined-outer-name
 """Tests for microservice"""
 import json
-from unittest.mock import patch, Mock
+# from unittest.mock import patch, Mock
 import jsend
 import pytest
 from falcon import testing
 import service.microservice
-import service.resources.bluebeam as bluebeam
+# import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
+from service.resources.models import SubmissionModel
+from service.microservice import create_session
 
 CLIENT_HEADERS = {
     "ACCESS_KEY": "1234567"
@@ -61,57 +63,82 @@ def test_default_error(client, mock_env_access_key):
     expected_msg_error = jsend.error('404 - Not Found')
     assert json.loads(response.content) == expected_msg_error
 
-def test_create_project(client, mock_env_access_key):
+def test_submission(mock_env_access_key, client):
     # pylint: disable=unused-argument
-    """Test the project post endpoint"""
+    """Test submission"""
+    response = client.simulate_post(
+        '/submission',
+        json=mocks.SUBMISSION_POST_DATA
+    )
+    assert response.status_code == 200
+    response_json = json.loads(response.text)
+    assert response_json["status"] == "success"
 
-    with patch('service.resources.bluebeam.requests.get') as mock_get:
-        fake_get_responses = [Mock(), Mock()]
-        # get projects
-        fake_get_responses[0].json.return_value = mocks.GET_PROJECTS_RESPONSE
-        # get folders
-        fake_get_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE
-        mock_get.side_effect = fake_get_responses
+    # check that its in the db
+    submission_id = response_json["data"]["submission_id"]
+    session = create_session()
+    db = session() # pylint: disable=invalid-name
+    s = db.query(SubmissionModel).filter(SubmissionModel.id == submission_id) # pylint: disable=invalid-name
+    assert s is not None
 
-        with patch('service.resources.bluebeam.oauth.fetch_token') as mock_fetch_token:
-            mock_fetch_token.return_value = mocks.FETCH_TOKEN_RESPONSE
+    # test validation failure
+    response = client.simulate_post(
+        '/submission',
+        json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'address'}
+    )
+    assert response.status_code == 500
 
-            with patch('service.resources.bluebeam.requests.post') as mock_post:
-                fake_post_responses = [Mock()] * 10
-                # create project
-                fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
-                # create folders
-                i = 1
-                while i < 8:
-                    fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
-                    i += 1
-                # initiate upload
-                fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
-                # confirm upload
-                fake_post_responses[9].status_code.return_value = 204
-                mock_post.side_effect = fake_post_responses
+# def test_create_project(client, mock_env_access_key):
+#     # pylint: disable=unused-argument
+#     """Test the project post endpoint"""
 
-                with patch('service.resources.bluebeam.requests.put') as mock_put:
-                    # upload pdf
-                    mock_put.return_value.status_code = 200
+#     with patch('service.resources.bluebeam.requests.get') as mock_get:
+#         fake_get_responses = [Mock(), Mock()]
+#         # get projects
+#         fake_get_responses[0].json.return_value = mocks.GET_PROJECTS_RESPONSE
+#         # get folders
+#         fake_get_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE
+#         mock_get.side_effect = fake_get_responses
 
-                    response = client.simulate_post('/project')
+#         with patch('service.resources.bluebeam.oauth.fetch_token') as mock_fetch_token:
+#             mock_fetch_token.return_value = mocks.FETCH_TOKEN_RESPONSE
 
-                    assert response.status_code == 200
+#             with patch('service.resources.bluebeam.requests.post') as mock_post:
+#                 fake_post_responses = [Mock()] * 10
+#                 # create project
+#                 fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+#                 # create folders
+#                 i = 1
+#                 while i < 8:
+#                     fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+#                     i += 1
+#                 # initiate upload
+#                 fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+#                 # confirm upload
+#                 fake_post_responses[9].status_code.return_value = 204
+#                 mock_post.side_effect = fake_post_responses
 
-def test_file_not_found():
-    """Test that exception is thrown with nonexisting file"""
-    with patch('service.resources.bluebeam.requests.post') as mock_post:
-        fake_post_responses = [Mock(), Mock()]
-        # initiate upload
-        fake_post_responses[0].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
-        #confirm uplaod
-        fake_post_responses[1].status_code.return_value = 204
-        mock_post.side_effect = fake_post_responses
+#                 with patch('service.resources.bluebeam.requests.put') as mock_put:
+#                     # upload pdf
+#                     mock_put.return_value.status_code = 200
 
-        with patch('service.resources.bluebeam.requests.put') as mock_put:
-            # upload pdf
-            mock_put.return_value.status_code = 200
+#                     response = client.simulate_post('/project')
 
-            with pytest.raises(FileNotFoundError):
-                bluebeam.upload_file("123", "abc", "docs/misc/nonexisting.pdf", "987")
+#                     assert response.status_code == 200
+
+# def test_file_not_found():
+#     """Test that exception is thrown with nonexisting file"""
+#     with patch('service.resources.bluebeam.requests.post') as mock_post:
+#         fake_post_responses = [Mock(), Mock()]
+#         # initiate upload
+#         fake_post_responses[0].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+#         #confirm uplaod
+#         fake_post_responses[1].status_code.return_value = 204
+#         mock_post.side_effect = fake_post_responses
+
+#         with patch('service.resources.bluebeam.requests.put') as mock_put:
+#             # upload pdf
+#             mock_put.return_value.status_code = 200
+
+#             with pytest.raises(FileNotFoundError):
+#                 bluebeam.upload_file("123", "abc", "docs/misc/nonexisting.pdf", "987")

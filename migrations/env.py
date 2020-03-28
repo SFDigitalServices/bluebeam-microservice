@@ -1,3 +1,4 @@
+# pylint: skip-file
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -24,6 +25,8 @@ target_metadata = None
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+def get_url():
+    return os.getenv("DATABASE_URL")
 
 def run_migrations_offline():
     """Run migrations in 'offline' mode.
@@ -37,7 +40,7 @@ def run_migrations_offline():
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,

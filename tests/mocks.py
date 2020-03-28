@@ -69,3 +69,10 @@ INIT_FILE_UPLOAD_RESPONSE = {
     "UploadUrl": "https://upload.here.com",
     "UploadContentType": "application/pdf"
 }
+
+SUBMISSION_POST_DATA = {
+    "address": "123 Market St.",
+    "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny"
+}
