@@ -1,7 +1,7 @@
 # pylint: disable=redefined-outer-name
 """Tests for microservice"""
 import json
-# from unittest.mock import patch, Mock
+from unittest.mock import patch
 import jsend
 import pytest
 from falcon import testing
@@ -80,6 +80,18 @@ def test_submission(mock_env_access_key, client):
     db = session() # pylint: disable=invalid-name
     s = db.query(SubmissionModel).filter(SubmissionModel.id == submission_id) # pylint: disable=invalid-name
     assert s is not None
+
+    # test that count api returns true
+    response = client.simulate_get('/submission/count')
+    assert response.status_code == 200
+    response_json = json.loads(response.text)
+    assert response_json["data"]["isNewSubmissionsExist"]
+
+    # test when error in getting submissions count
+    with patch("sqlalchemy.orm.session.Session.query") as query:
+        query.side_effect = Exception("Generic Error")
+        response = client.simulate_get('/submission/count')
+    assert response.status_code == 500
 
     # test validation failure
     response = client.simulate_post(

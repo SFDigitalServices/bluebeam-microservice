@@ -5,7 +5,7 @@ from dateutil import tz
 import falcon
 import jsend
 from .hooks import validate_access
-from .models import create_submission
+from .models import create_submission, SubmissionModel
 
 LOCAL_TZ = tz.gettz("America/Los_Angeles")
 
@@ -29,6 +29,29 @@ class Submission():
                 'date_received': submission.date_received.astimezone(LOCAL_TZ).strftime(
                     "%Y/%m/%d, %H:%M:%S"
                 )
+            }))
+        except Exception as err: # pylint: disable=broad-except
+            print("error:")
+            print("{0}".format(err))
+            resp.status = falcon.HTTP_500
+            resp.body = json.dumps(jsend.error("{0}".format(err)))
+
+@falcon.before(validate_access)
+class SubmissionCount():
+    """
+        SubmissionCount class
+    """
+    def on_get(self, _req, resp):
+        """
+            Return true if there exists submissions that need to be exported
+        """
+        try:
+            submissions = self.session.query(SubmissionModel).filter( # pylint: disable=no-member
+                SubmissionModel.date_exported.is_(None)
+            )
+            resp.status = falcon.HTTP_200
+            resp.body = json.dumps(jsend.success({
+                'isNewSubmissionsExist': submissions.count() > 0
             }))
         except Exception as err: # pylint: disable=broad-except
             print("error:")

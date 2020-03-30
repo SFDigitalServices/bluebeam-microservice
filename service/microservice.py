@@ -7,7 +7,7 @@ import falcon
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 from .resources.welcome import Welcome
-from .resources.submission import Submission
+from .resources.submission import Submission, SubmissionCount
 # from .resources.export import Export
 
 def start_service():
@@ -19,6 +19,7 @@ def start_service():
     # Initialize Falcon
     api = falcon.API(middleware=[SQLAlchemySessionManager(create_session())])
     api.add_route('/welcome', Welcome())
+    api.add_route('/submission/count', SubmissionCount())
     api.add_route('/submission', Submission())
     # api.add_static_route('/static', os.path.abspath('static'))
     # api.add_route('/export', Export())
