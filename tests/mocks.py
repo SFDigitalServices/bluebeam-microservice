@@ -74,5 +74,6 @@ SUBMISSION_POST_DATA = {
     "address": "123 Market St.",
     "email": "test@test.com",
     "phone": "415-867-5309",
-    "name": "Jenny"
+    "name": "Jenny",
+    "files": ["https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"]
 }

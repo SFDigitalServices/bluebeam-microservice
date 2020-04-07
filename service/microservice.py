@@ -4,11 +4,10 @@ import json
 import jsend
 import sentry_sdk
 import falcon
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
+from .resources.db import create_session
 from .resources.welcome import Welcome
-from .resources.submission import Submission, SubmissionCount
-# from .resources.export import Export
+from .resources.submission import Submission
+from .resources.export import Export, ExportStatus
 
 def start_service():
     """Start this service
@@ -19,11 +18,11 @@ def start_service():
     # Initialize Falcon
     api = falcon.API(middleware=[SQLAlchemySessionManager(create_session())])
     api.add_route('/welcome', Welcome())
-    api.add_route('/submission/count', SubmissionCount())
     api.add_route('/submission', Submission())
-    # api.add_static_route('/static', os.path.abspath('static'))
-    # api.add_route('/export', Export())
-    api.add_sink(default_error, '')
+    api.add_route('/export/status', ExportStatus())
+    api.add_route('/export', Export())
+    api.add_static_route('/static', os.path.abspath('static'))
+    api.add_sink(default_error, '^((?!static).)*$')
     return api
 
 def default_error(_req, resp):
@@ -33,11 +32,6 @@ def default_error(_req, resp):
 
     sentry_sdk.capture_message(msg_error)
     resp.body = json.dumps(msg_error)
-
-def create_session():
-    """creates database session"""
-    db_engine = sa.create_engine(os.environ.get('DATABASE_URL'), echo=True)
-    return sessionmaker(bind=db_engine)
 
 class SQLAlchemySessionManager:
     """

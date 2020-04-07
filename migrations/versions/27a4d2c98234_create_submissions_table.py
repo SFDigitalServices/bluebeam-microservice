@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         'submission',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('data', sa.Text, nullable=False),
+        sa.Column('data', sa.JSON, nullable=False),
         sa.Column('date_received', sa.DateTime(timezone=True), server_default=func.now()),
         sa.Column('date_exported', sa.DateTime(timezone=True)),
         sa.Column('bluebeam_project_id', sa.String(11)),

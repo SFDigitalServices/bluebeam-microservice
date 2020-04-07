@@ -6,6 +6,7 @@ SFDS bluebeam-microservice.py was developed for CCSF interactions with Bluebeam.
 ([Mac OS X](https://docs.python-guide.org/starting/install3/osx/) / [Windows](https://www.stuartellis.name/articles/python-development-windows/))
 * Pipenv & Virtual Environments ([virtualenv](https://docs.python-guide.org/dev/virtualenvs/#virtualenvironments-ref) / [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/))
 * [Postgres](https://www.postgresql.org)
+* [Redis](https://redis.io)
 
 ## Get started
 
@@ -16,8 +17,14 @@ Install Postgres (if needed)
 Create database
 > $ createdb bluebeam_microservice
 
-Set Postgresql connection string environment variables
+Install Redis (if needed)
+*(with Homebrew)*
+> $ brew install redis
+
+Set Postgresql and Redis connection string environment variables
 > $ export DATABASE\_URL=postgresql://localhost/bluebeam\_microservice
+
+> $ export REDIS_URL=redis://localhost:6379
 
 Install Pipenv (if needed)
 > $ pip install --user pipenv
@@ -33,6 +40,9 @@ Run DB migrations
 
 Set ACCESS_KEY environment var and start WSGI Server
 > $ ACCESS_KEY=123456 pipenv run gunicorn 'service.microservice:start_service()'
+
+Start celery worker
+> $ pipenv run celery worker
 
 Run Pytest
 > $ pipenv run python -m pytest
@@ -58,6 +68,13 @@ Create a migration
 
 Run DB migrations
 > alembic upgrade head
+
+### Run Dev Server with SSL
+Generate SSL keys
+> $ openssl req -newkey rsa:2048 -nodes -keyout myserver-dev.key -x509 -out myserver-dev.crt
+
+Run server with SSL keys
+> $ ACCESS_KEY=123456 pipenv run gunicorn --reload --certfile=myserver-dev.crt --keyfile=myserver-dev.key -- bind 0.0.0.0:443 'service.microservice:start_service()'
 
 ## Continuous integration
 * CircleCI builds fail when trying to run coveralls.

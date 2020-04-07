@@ -9,7 +9,7 @@ import service.microservice
 # import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
 from service.resources.models import SubmissionModel
-from service.microservice import create_session
+from service.resources.db import create_session
 
 CLIENT_HEADERS = {
     "ACCESS_KEY": "1234567"
@@ -81,22 +81,16 @@ def test_submission(mock_env_access_key, client):
     s = db.query(SubmissionModel).filter(SubmissionModel.id == submission_id) # pylint: disable=invalid-name
     assert s is not None
 
-    # test that count api returns true
-    response = client.simulate_get('/submission/count')
-    assert response.status_code == 200
-    response_json = json.loads(response.text)
-    assert response_json["data"]["isNewSubmissionsExist"]
-
-    # test when error in getting submissions count
-    with patch("sqlalchemy.orm.session.Session.query") as query:
-        query.side_effect = Exception("Generic Error")
-        response = client.simulate_get('/submission/count')
-    assert response.status_code == 500
-
     # test validation failure
     response = client.simulate_post(
         '/submission',
         json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'address'}
+    )
+    assert response.status_code == 500
+
+    response = client.simulate_post(
+        '/submission',
+        json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'files'}
     )
     assert response.status_code == 500
 
