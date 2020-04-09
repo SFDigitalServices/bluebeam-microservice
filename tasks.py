@@ -1,4 +1,5 @@
 """defining celery task for background processing of bluebeam-microservice"""
+# pylint: disable=too-many-locals
 
 # import sys
 # import traceback
