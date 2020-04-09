@@ -3,6 +3,8 @@
 
 import json
 from urllib.parse import urlparse, urlunparse, urlencode
+from datetime import datetime
+from uuid import UUID
 import jsend
 import falcon
 from mako.template import Template
@@ -19,6 +21,7 @@ class Export():
         resp.content_type = falcon.MEDIA_HTML
         if 'code' in _req.params:
             # handle redirect back from auth server
+            export_obj = None
             try:
                 # convert auth code to access token
                 bluebeam_token_url = create_url(
@@ -39,7 +42,7 @@ class Export():
                         )
                     }
                 )
-                auth_response_json = json.loads(auth_response.text)
+                auth_response_json = auth_response.json()
 
                 if 'access_token' not in auth_response_json:
                     # didn't get access token from bluebeam
@@ -53,15 +56,21 @@ class Export():
                 template = Template(filename='templates/exporting.html')
                 resp.body = template.render(export_id=export_obj.guid)
 
-                print("access_token:{0}".format(auth_response_json['access_token']))
                 bluebeam_export.apply_async(
                     (export_obj, auth_response_json['access_token']),
                     serializer='pickle',
                 )
             except Exception as err: # pylint: disable=broad-except
                 # error in scheduling
-                # present error ui
                 err_string = "{0}".format(err)
+
+                # finish this export
+                if export_obj is not None:
+                    export_obj.date_finished = datetime.utcnow()
+                    export_obj.result = err_string
+                    self.session.commit() # pylint: disable=no-member
+
+                # present error ui
                 print("error:")
                 print(err_string)
                 resp.status = falcon.HTTP_500
@@ -122,31 +131,39 @@ class ExportStatus():
     def on_get(self, _req, resp):
         #pylint: disable=no-self-use
         """ returns status of the export """
-        if 'export_id' in _req.params:
-            export_id = _req.params['export_id']
-            exports = self.session.query(ExportStatusModel).filter( # pylint: disable=no-member
-                ExportStatusModel.guid == export_id
-            )
-            if exports.count() == 1:
-                export_status = exports.first()
-                resp.status = falcon.HTTP_200
+        try:
+            if 'export_id' in _req.params:
+                export_id = _req.params['export_id']
 
-                if export_status.result is None:
-                    export_status.result = {
-                        'success':[],
-                        'failure':[]
-                    }
-                resp.body = json.dumps(jsend.success({
-                    'is_finished': export_status.date_finished is not None,
-                    'success_count': len(export_status.result['success']),
-                    'failures': export_status.result['failure']
-                }))
+                if not is_valid_uuid(export_id):
+                    raise Exception("Invalid export_id")
+
+                exports = self.session.query(ExportStatusModel).filter( # pylint: disable=no-member
+                    ExportStatusModel.guid == export_id
+                )
+                if exports.count() == 1:
+                    export_status = exports.first()
+                    resp.status = falcon.HTTP_200
+
+                    if export_status.result is None:
+                        export_status.result = {
+                            'success':[],
+                            'failure':[]
+                        }
+                    resp.body = json.dumps(jsend.success({
+                        'is_finished': export_status.date_finished is not None,
+                        'success_count': len(export_status.result['success']),
+                        'failures': export_status.result['failure']
+                    }))
+                else:
+                    raise Exception("Invalid export_id")
             else:
-                resp.status = falcon.HTTP_500
-                resp.body = json.dumps(jsend.error("Invalid export_id"))
-        else:
+                raise Exception("export_id is required")
+        except Exception as err: # pylint: disable=broad-except
+            err_msg = "{0}".format(err)
+            print(err_msg)
             resp.status = falcon.HTTP_500
-            resp.body = json.dumps(jsend.error("export_id is required"))
+            resp.body = json.dumps(jsend.error(err_msg))
 
 def create_url(base_url, path, args_dict=None):
     """ helper for creating urls """
@@ -156,3 +173,14 @@ def create_url(base_url, path, args_dict=None):
     url_parts[2] = path
     url_parts[4] = urlencode(args_dict)
     return urlunparse(url_parts)
+
+def is_valid_uuid(uuid_to_test, version=4):
+    """
+        Check if uuid_to_test is a valid UUID.
+    """
+    try:
+        uuid_obj = UUID(uuid_to_test, version=version)
+    except ValueError:
+        return False
+
+    return str(uuid_obj) == uuid_to_test

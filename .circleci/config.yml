@@ -77,7 +77,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            pipenv run python -m pytest --cov=service tests/ --cov-fail-under=100
+            pipenv run python -m pytest --cov=service --cov=tasks tests/ --cov-fail-under=100
             pipenv run coveralls
 
 

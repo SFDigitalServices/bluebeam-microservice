@@ -48,7 +48,7 @@ Run Pytest
 > $ pipenv run python -m pytest
 
 Get code coverage report
-> $ pipenv run python -m pytest --cov=service tests/ --cov-fail-under=100
+> $ pipenv run python -m pytest --cov=service --cov=tasks tests/ --cov-fail-under=100
 
 Open with cURL or web browser
 > $ curl --header "ACCESS_KEY: 123456" http://127.0.0.1:8000/welcome
@@ -58,7 +58,7 @@ Auto-reload on code changes
 > $ ACCESS_KEY=123456 pipenv run gunicorn --reload 'service.microservice:start_service()'
 
 Code coverage command with missing statement line numbers  
-> $ pipenv run python -m pytest --cov=service tests/ --cov-report term-missing
+> $ pipenv run python -m pytest --cov=service --cov=tasks tests/ --cov-report term-missing
 
 Set up git hook scripts with pre-commit
 > $ pipenv run pre-commit install

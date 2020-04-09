@@ -22,6 +22,9 @@ celery_app = celery.Celery('bluebeam-microservice')
 celery_app.config_from_object(celeryconfig)
 # pylint: enable=invalid-name
 
+ERR_NO_PDF_FOLDER = "There wasn't a folder_id to upload pdfs to"
+ERR_UPLOAD_FAIL = "Unable to upload file"
+
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
 def bluebeam_export(self, export_obj, access_code):
     # pylint: disable=unused-argument
@@ -40,7 +43,9 @@ def bluebeam_export(self, export_obj, access_code):
         'failure': []
     }
     for submission in submissions_to_export:
+        project_id = None
         try:
+            print("export:submission - {0}".format(submission.id))
             # update submission's export_guid in db
             submission.export_status_guid = export_obj.guid
 
@@ -71,14 +76,16 @@ def bluebeam_export(self, export_obj, access_code):
                         pdf_folder_id
                     )
                     if not is_upload_successful:
-                        raise Exception("Unable to upload file")
+                        print(ERR_UPLOAD_FAIL)
+                        raise Exception(ERR_UPLOAD_FAIL)
 
                 # finished exporting this submission
                 statuses['success'].append(submission.id)
                 submission.date_exported = datetime.utcnow()
                 submission.bluebeam_project_id = project_id
             else:
-                raise Exception("There wasn't a folder_id to upload pdfs to")
+                print(ERR_NO_PDF_FOLDER)
+                raise Exception(ERR_NO_PDF_FOLDER)
 
         except Exception as err: # pylint: disable=broad-except
             err_msg = "{0}".format(err)
@@ -89,6 +96,9 @@ def bluebeam_export(self, export_obj, access_code):
                 'id': submission.id,
                 'err': err_msg
             })
+            # delete project in bluebeam if it was created
+            if project_id:
+                bluebeam.delete_project(access_code, project_id)
 
     # finished export
     export_status = db_session.query(ExportStatusModel).filter(
