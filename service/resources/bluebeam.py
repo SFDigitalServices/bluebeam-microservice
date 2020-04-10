@@ -3,6 +3,7 @@
 import os
 from time import perf_counter
 import requests
+from service.resources.utils import create_url
 # from oauthlib.oauth2 import LegacyApplicationClient
 # from requests_oauthlib import OAuth2Session
 
@@ -29,18 +30,6 @@ DIRECTORY_STRUCTURE = [
     ]}
 ]
 
-# def get_token():
-#     """
-#         retrieves oauth2 token via password grant
-#     """
-#     oauth = OAuth2Session(client=LegacyApplicationClient(client_id=BLUEBEAM_CLIENT_ID))
-#     return oauth.fetch_token(
-#         token_url=BLUEBEAM_AUTHSERVER+BLUEBEAM_TOKEN_PATH,
-#         username=USERNAME,
-#         password=PASSWORD,
-#         client_id=BLUEBEAM_CLIENT_ID
-#     )
-
 def timer(func):
     """
         decorator to calculate runtime
@@ -54,6 +43,18 @@ def timer(func):
         return result
     return wrapper
 
+# def get_token():
+#     """
+#         retrieves oauth2 token via password grant
+#     """
+#     oauth = OAuth2Session(client=LegacyApplicationClient(client_id=BLUEBEAM_CLIENT_ID))
+#     return oauth.fetch_token(
+#         token_url=BLUEBEAM_AUTHSERVER+BLUEBEAM_TOKEN_PATH,
+#         username=USERNAME,
+#         password=PASSWORD,
+#         client_id=BLUEBEAM_CLIENT_ID
+#     )
+
 # @timer
 # def get_projects(access_token):
 #     """
@@ -65,6 +66,31 @@ def timer(func):
 #             'Authorization': 'Bearer ' + access_token
 #         })
 #     return response.json()
+
+@timer
+def get_access_token_response(auth_code, redirect_uri):
+    """
+        Get access_token from bluebeam
+    """
+    bluebeam_token_url = create_url(
+        BLUEBEAM_AUTHSERVER,
+        BLUEBEAM_TOKEN_PATH
+    )
+    auth_response = requests.post(
+        bluebeam_token_url,
+        {
+            'grant_type': 'authorization_code',
+            'code': auth_code,
+            'client_id': BLUEBEAM_CLIENT_ID,
+            'client_secret': BLUEBEAM_CLIENT_SECRET,
+            'redirect_uri': redirect_uri
+        }
+    )
+    auth_response_json = auth_response.json()
+    if 'access_token' not in auth_response_json:
+        # didn't get access token from bluebeam
+        raise Exception(auth_response_json['error'])
+    return auth_response_json
 
 @timer
 def create_project(access_token, project_name):
@@ -130,7 +156,6 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
 #     )
 #     return response.json()
 
-@timer
 def upload_file(access_token, project_id, file_name, file_content, folder_id):
     """
         uploads a file to bluebeam for given project_id and folder_id
@@ -138,44 +163,65 @@ def upload_file(access_token, project_id, file_name, file_content, folder_id):
     try:
         print("bluebeam.upload_file:{0}".format(file_name))
         # find out where to upload file
-        response = requests.post(
-            BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/files",
-            headers={
-                'Authorization': 'Bearer ' + access_token
-            },
-            json={
-                "Name": file_name,
-                "ParentFolderId": folder_id
-            }
-        )
-        response_json = response.json()
+        response_json = initiate_upload(access_token, project_id, file_name, folder_id)
         upload_url = response_json['UploadUrl']
         file_id = response_json['Id']
         upload_content_type = response_json['UploadContentType']
 
         # upload file
-        response = requests.put(
-            upload_url,
-            data=file_content,
-            headers={
-                'Content-type': upload_content_type,
-                'x-amz-server-side-encryption': 'AES256'
-            }
-        )
+        upload(upload_url, file_content, upload_content_type)
 
         # confirm upload
-        response = requests.post(
-            BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) +
-            "/files/" + str(file_id) + "/confirm-upload",
-            headers={
-                'Authorization': 'Bearer ' + access_token
-            }
-        )
+        return confirm_upload(access_token, project_id, file_id)
 
-        return response.status_code == 204
     except Exception as err: # pylint: disable=broad-except
         print("Caught exception in bluebeam.upload_file: {0}".format(err))
         return False
+
+@timer
+def initiate_upload(acccess_code, project_id, file_name, folder_id):
+    """
+        initate file upload with bluebeam
+    """
+    response = requests.post(
+        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/files",
+        headers={
+            'Authorization': 'Bearer ' + acccess_code
+        },
+        json={
+            "Name": file_name,
+            "ParentFolderId": folder_id
+        }
+    )
+    return response.json()
+
+@timer
+def upload(upload_url, file_contents, content_type):
+    """
+        uploads file
+    """
+    requests.put(
+        upload_url,
+        data=file_contents,
+        headers={
+            'Content-type': content_type,
+            'x-amz-server-side-encryption': 'AES256'
+        }
+    )
+
+@timer
+def confirm_upload(access_token, project_id, file_id):
+    """
+        true/false confirm upload with bluebeam
+    """
+    response = requests.post(
+        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) +
+        "/files/" + str(file_id) + "/confirm-upload",
+        headers={
+            'Authorization': 'Bearer ' + access_token
+        }
+    )
+    return response.status_code == 204
 
 def create_directories(access_code, project_id, directories, parent_folder_id=0):
     """

@@ -2,14 +2,12 @@
 #pylint: disable=too-few-public-methods
 
 import json
-from urllib.parse import urlparse, urlunparse, urlencode
 from datetime import datetime
-from uuid import UUID
 import jsend
 import falcon
 from mako.template import Template
-import requests
 from service.resources.models import create_export, SubmissionModel, ExportStatusModel
+from service.resources.utils import create_url, is_valid_uuid
 from tasks import bluebeam_export
 import service.resources.bluebeam as bluebeam
 # from requests_oauthlib import OAuth2Session
@@ -24,40 +22,26 @@ class Export():
             export_obj = None
             try:
                 # convert auth code to access token
-                bluebeam_token_url = create_url(
-                    bluebeam.BLUEBEAM_AUTHSERVER,
-                    bluebeam.BLUEBEAM_TOKEN_PATH
+                redirect_uri = self.create_redirect_url(
+                    _req.forwarded_scheme,
+                    _req.forwarded_host,
+                    _req.port
                 )
-                auth_response = requests.post(
-                    bluebeam_token_url,
-                    {
-                        'grant_type': 'authorization_code',
-                        'code': _req.params['code'],
-                        'client_id': bluebeam.BLUEBEAM_CLIENT_ID,
-                        'client_secret': bluebeam.BLUEBEAM_CLIENT_SECRET,
-                        'redirect_uri': self.create_redirect_url(
-                            _req.forwarded_scheme,
-                            _req.forwarded_host,
-                            _req.port
-                        )
-                    }
+                access_response = bluebeam.get_access_token_response(
+                    _req.params['code'],
+                    redirect_uri
                 )
-                auth_response_json = auth_response.json()
-
-                if 'access_token' not in auth_response_json:
-                    # didn't get access token from bluebeam
-                    raise Exception(auth_response_json['error'])
 
                 # happy path
                 # show spinner ui which will poll for export status
-                export_obj = create_export(self.session, auth_response_json['userName']) # pylint: disable=no-member
+                export_obj = create_export(self.session, access_response['userName']) # pylint: disable=no-member
 
                 resp.status = falcon.HTTP_200
                 template = Template(filename='templates/exporting.html')
                 resp.body = template.render(export_id=export_obj.guid)
 
                 bluebeam_export.apply_async(
-                    (export_obj, auth_response_json['access_token']),
+                    (export_obj, access_response['access_token']),
                     serializer='pickle',
                 )
             except Exception as err: # pylint: disable=broad-except
@@ -164,23 +148,3 @@ class ExportStatus():
             print(err_msg)
             resp.status = falcon.HTTP_500
             resp.body = json.dumps(jsend.error(err_msg))
-
-def create_url(base_url, path, args_dict=None):
-    """ helper for creating urls """
-    if args_dict is None:
-        args_dict = {}
-    url_parts = list(urlparse(base_url))
-    url_parts[2] = path
-    url_parts[4] = urlencode(args_dict)
-    return urlunparse(url_parts)
-
-def is_valid_uuid(uuid_to_test, version=4):
-    """
-        Check if uuid_to_test is a valid UUID.
-    """
-    try:
-        uuid_obj = UUID(uuid_to_test, version=version)
-    except ValueError:
-        return False
-
-    return str(uuid_obj) == uuid_to_test

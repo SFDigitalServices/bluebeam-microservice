@@ -291,7 +291,7 @@ def test_export(mock_env_access_key, client):
     assert 'Export form submissions to Bluebeam' in response.text
 
     # Redirect back from authserver with invalid grant
-    with patch('service.resources.export.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.INVALID_GRANT_RESPONSE
 
         response = client.simulate_get('/export?code=super-secrete-code')
@@ -304,7 +304,7 @@ def test_export(mock_env_access_key, client):
         assert exports_in_progress.count() == 0
 
     # Error when scheduling with celery
-    with patch('service.resources.export.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.ACCESS_TOKEN_RESPONSE
 
         with patch('tasks.bluebeam_export.apply_async') as mock_schedule:
@@ -320,7 +320,7 @@ def test_export(mock_env_access_key, client):
             assert exports_in_progress.count() == 0
 
     # Redirect back from authserver with valid code
-    with patch('service.resources.export.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.ACCESS_TOKEN_RESPONSE
 
         response = client.simulate_get('/export?code=super-secret-code')
