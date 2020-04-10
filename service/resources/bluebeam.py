@@ -12,8 +12,8 @@ BLUEBEAM_AUTHSERVER = os.environ.get('BLUEBEAM_AUTHSERVER')
 BLUEBEAM_AUTH_PATH = '/auth/oauth/authorize'
 BLUEBEAM_TOKEN_PATH = '/auth/token'
 
-USERNAME = os.environ.get('BLUEBEAM_USERNAME')
-PASSWORD = os.environ.get('BLUEBEAM_PASSWORD')
+# USERNAME = os.environ.get('BLUEBEAM_USERNAME')
+# PASSWORD = os.environ.get('BLUEBEAM_PASSWORD')
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
 DIRECTORY_STRUCTURE = [
