@@ -1,6 +1,7 @@
 """Bluebeam module"""
 #pylint: disable=too-few-public-methods, invalid-name
 import os
+import datetime
 from time import perf_counter
 import requests
 from service.resources.utils import create_url
@@ -76,9 +77,10 @@ def get_access_token_response(auth_code, redirect_uri):
         BLUEBEAM_AUTHSERVER,
         BLUEBEAM_TOKEN_PATH
     )
-    auth_response = requests.post(
+    auth_response = bluebeam_request(
+        'post',
         bluebeam_token_url,
-        {
+        data={
             'grant_type': 'authorization_code',
             'code': auth_code,
             'client_id': BLUEBEAM_CLIENT_ID,
@@ -97,7 +99,8 @@ def create_project(access_token, project_name):
     """
         creates project in bluebeam
     """
-    response = requests.post(
+    response = bluebeam_request(
+        'post',
         BLUEBEAM_API_BASE_URL + "/projects",
         headers={
             'Authorization': 'Bearer ' + access_token
@@ -116,7 +119,8 @@ def delete_project(access_token, project_id):
     """
         deletes project in bluebeam
     """
-    requests.delete(
+    bluebeam_request(
+        'delete',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id),
         headers={
             'Authorization': 'Bearer ' + access_token
@@ -129,7 +133,8 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
         creates a folder in a project
     """
     print("bluebeam.create_folder:{0}".format(folder_name))
-    response = requests.post(
+    response = bluebeam_request(
+        'post',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/folders",
         headers={
             'Authorization': 'Bearer ' + access_token
@@ -183,7 +188,8 @@ def initiate_upload(acccess_code, project_id, file_name, folder_id):
     """
         initate file upload with bluebeam
     """
-    response = requests.post(
+    response = bluebeam_request(
+        'post',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/files",
         headers={
             'Authorization': 'Bearer ' + acccess_code
@@ -200,7 +206,8 @@ def upload(upload_url, file_contents, content_type):
     """
         uploads file
     """
-    requests.put(
+    bluebeam_request(
+        'put',
         upload_url,
         data=file_contents,
         headers={
@@ -214,7 +221,8 @@ def confirm_upload(access_token, project_id, file_id):
     """
         true/false confirm upload with bluebeam
     """
-    response = requests.post(
+    response = bluebeam_request(
+        'post',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) +
         "/files/" + str(file_id) + "/confirm-upload",
         headers={
@@ -249,3 +257,14 @@ def create_directories(access_code, project_id, directories, parent_folder_id=0)
         if "pdf_uploads" in folder and folder["pdf_uploads"]:
             pdf_folder_id = folder_id
     return pdf_folder_id
+
+def bluebeam_request(method, url, data=None, json=None, headers=None):
+    """ prints bluebeam requests info to log """
+    print("endpoint: {0}".format(url))
+    print("method: {0}".format(method))
+    print("start timestamp: {0}".format(datetime.datetime.now()))
+    response = requests.request(method=method, url=url, data=data, json=json, headers=headers)
+    print("end timestamp: {0}".format(datetime.datetime.now()))
+    print("response header: {0}".format(response.headers))
+    print("response body: {0}".format(response.text))
+    return response
