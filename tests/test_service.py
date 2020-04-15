@@ -143,6 +143,7 @@ def test_is_url():
 def test_export_task():
     # pylint: disable=unused-argument
     """Test the export task"""
+    print("test_export_task")
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
@@ -150,8 +151,8 @@ def test_export_task():
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
-    with patch('service.resources.bluebeam.requests.post') as mock_post:
-        fake_post_responses = [Mock()] * 10
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = [Mock()] * 11
         # create project
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
@@ -161,23 +162,22 @@ def test_export_task():
             i += 1
         # initiate upload
         fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses[9].return_value.status_code = 200
         # confirm upload
-        fake_post_responses[9].status_code = 204
+        fake_post_responses[10].status_code = 204
+
         mock_post.side_effect = fake_post_responses
 
-        with patch('service.resources.bluebeam.requests.put') as mock_put:
-            # upload pdf
-            mock_put.return_value.status_code = 200
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
 
-            bluebeam_export.s(
-                export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
-            ).apply()
+        db.refresh(export_obj)
 
-            db.refresh(export_obj)
-
-            assert export_obj.date_finished is not None
-            assert len(export_obj.result['success']) > 0
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) > 0
 
     # clear out the queue
     queue.control.purge()
@@ -192,8 +192,8 @@ def test_export_task_file_upload_error():
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected outbound requests
-    with patch('service.resources.bluebeam.requests.post') as mock_post:
-        fake_post_responses = [Mock()] * 10
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = [Mock()] * 12
         # create project
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
@@ -203,27 +203,24 @@ def test_export_task_file_upload_error():
             i += 1
         # initiate upload
         fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses[9] = Exception("Generic Error")
         # confirm upload
-        fake_post_responses[9].status_code = 204
+        fake_post_responses[10].status_code = 204
+        # delete project
+        fake_post_responses[11].status_code = 204
+
         mock_post.side_effect = fake_post_responses
 
-        with patch('service.resources.bluebeam.requests.put') as mock_put:
-            # upload pdf
-            mock_put.side_effect = Exception("Generic Error")
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
 
-            with patch('service.resources.bluebeam.requests.delete') as mock_delete:
-                # delete project
-                mock_delete.status_code = 204
-
-                bluebeam_export.s(
-                    export_obj=export_obj,
-                    access_code=BLUEBEAM_ACCESS_CODE
-                ).apply()
-
-                db.refresh(export_obj)
-                assert export_obj.date_finished is not None
-                assert len(export_obj.result['failure']) > 0
-                assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
+        db.refresh(export_obj)
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['failure']) > 0
+        assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
@@ -238,8 +235,8 @@ def test_export_task_no_pdf_folder():
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected outbound requests
-    with patch('service.resources.bluebeam.requests.post') as mock_post:
-        fake_post_responses = [Mock()] * 8
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = [Mock()] * 10
         # create project
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
@@ -247,6 +244,9 @@ def test_export_task_no_pdf_folder():
         while i < 8:
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
+        # delete project
+        fake_post_responses[9].status_code = 204
+
         mock_post.side_effect = fake_post_responses
 
         with patch('service.resources.bluebeam.DIRECTORY_STRUCTURE') as mock_dir_structure:
@@ -254,19 +254,15 @@ def test_export_task_no_pdf_folder():
                 {"name": "CCSF EPR"}
             ]
 
-            with patch('service.resources.bluebeam.requests.delete') as mock_delete:
-                # delete project
-                mock_delete.status_code = 204
+            bluebeam_export.s(
+                export_obj=export_obj,
+                access_code=BLUEBEAM_ACCESS_CODE
+            ).apply()
 
-                bluebeam_export.s(
-                    export_obj=export_obj,
-                    access_code=BLUEBEAM_ACCESS_CODE
-                ).apply()
-
-                db.refresh(export_obj)
-                assert export_obj.date_finished is not None
-                assert len(export_obj.result['failure']) > 0
-                assert export_obj.result['failure'][-1]['err'] == ERR_NO_PDF_FOLDER
+            db.refresh(export_obj)
+            assert export_obj.date_finished is not None
+            assert len(export_obj.result['failure']) > 0
+            assert export_obj.result['failure'][-1]['err'] == ERR_NO_PDF_FOLDER
 
     # clear out the queue
     queue.control.purge()
@@ -276,6 +272,7 @@ def test_export(mock_env_access_key, client):
     """
         tests the export ui
     """
+    print("test_export")
     # clear up entries in db
     finish_submissions_exports()
 
@@ -291,7 +288,7 @@ def test_export(mock_env_access_key, client):
     assert 'Export form submissions to Bluebeam' in response.text
 
     # Redirect back from authserver with invalid grant
-    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.request') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.INVALID_GRANT_RESPONSE
 
         response = client.simulate_get('/export?code=super-secrete-code')
@@ -304,7 +301,7 @@ def test_export(mock_env_access_key, client):
         assert exports_in_progress.count() == 0
 
     # Error when scheduling with celery
-    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.request') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.ACCESS_TOKEN_RESPONSE
 
         with patch('tasks.bluebeam_export.apply_async') as mock_schedule:
@@ -320,7 +317,7 @@ def test_export(mock_env_access_key, client):
             assert exports_in_progress.count() == 0
 
     # Redirect back from authserver with valid code
-    with patch('service.resources.bluebeam.requests.post') as mock_auth_post:
+    with patch('service.resources.bluebeam.requests.request') as mock_auth_post:
         mock_auth_post.return_value.json.return_value = mocks.ACCESS_TOKEN_RESPONSE
 
         response = client.simulate_get('/export?code=super-secret-code')
