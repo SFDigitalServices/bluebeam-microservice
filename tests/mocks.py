@@ -75,7 +75,10 @@ SUBMISSION_POST_DATA = {
     "email": "test@test.com",
     "phone": "415-867-5309",
     "name": "Jenny",
-    "files": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+    "files": [{
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "originalName": "dummy.pdf"
+    }]
 }
 
 ACCESS_TOKEN_RESPONSE = {

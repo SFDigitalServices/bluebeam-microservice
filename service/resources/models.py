@@ -44,21 +44,17 @@ def create_submission(db_session, json_data):
 def validate(json_params):
     """enforce validation rules"""
     #pylint: disable=unused-argument
-    if json_params is None:
-        raise Exception("This api requires 'address' and 'files' parameters")
-
     if 'address' not in json_params:
         raise Exception("address is a required field")
 
     if 'files' not in json_params or len(json_params['files']) == 0:
         raise Exception("at least one file is required")
 
-    if isinstance(json_params['files'], str):
-        json_params['files'] = [json_params['files']]
-
-    for file_url in json_params['files']:
-        if not is_url(file_url):
+    for f in json_params['files']: #pylint: disable=invalid-name
+        if not 'url' in f or not is_url(f['url']):
             raise Exception("invalid file url")
+        if not 'originalName' in f:
+            raise Exception("missing originalName in file json")
 
     return json_params
 

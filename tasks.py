@@ -3,10 +3,8 @@
 
 # import sys
 # import traceback
-import os
 from datetime import datetime
 import urllib.request
-from urllib.parse import urlparse
 import celery
 from kombu import serialization
 import celeryconfig
@@ -52,7 +50,7 @@ def bluebeam_export(self, export_obj, access_code):
 
             # create project in bluebeam
             now = datetime.now()
-            project_name = now.strftime('%Y-%m%d-%H%M%S') + submission.data['address']
+            project_name = now.strftime('%Y-%m%d-%H%M%S') + " " + submission.data['address']
             project_id = bluebeam.create_project(access_code, project_name)
 
             # create directory structure
@@ -64,10 +62,11 @@ def bluebeam_export(self, export_obj, access_code):
 
             # upload pdf to new folder in new project
             if pdf_folder_id is not None:
-                for file_url in submission.data['files']:
+                for f in submission.data['files']: #pylint: disable=invalid-name
+                    file_url = f['url']
                     response = urllib.request.urlopen(file_url)
                     file_download = response.read()
-                    file_name = os.path.basename(urlparse(file_url).path)
+                    file_name = f['originalName']
 
                     is_upload_successful = bluebeam.upload_file(
                         access_code,

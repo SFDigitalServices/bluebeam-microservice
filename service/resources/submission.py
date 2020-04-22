@@ -19,7 +19,8 @@ class Submission():
             Record post into the database
         """
         try:
-            json_params = _req.media
+            request_body = _req.bounded_stream.read()
+            json_params = json.loads(request_body)
             submission = create_submission(self.session, json_params) # pylint: disable=no-member
 
             resp.status = falcon.HTTP_200

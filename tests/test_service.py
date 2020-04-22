@@ -131,6 +131,16 @@ def test_submission(mock_env_access_key, client):
     )
     assert response.status_code == 500
 
+    submission_post_data = mocks.SUBMISSION_POST_DATA.copy()
+    submission_post_data['files'] = [{
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+    }]
+    response = client.simulate_post(
+        '/submission',
+        json=submission_post_data
+    )
+    assert response.status_code == 500
+
 def test_is_url():
     """ test is_url function """
     assert not is_url(1)
