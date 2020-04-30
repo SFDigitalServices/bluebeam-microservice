@@ -262,6 +262,11 @@ def bluebeam_request(method, url, data=None, json=None, headers=None):
     """ prints bluebeam requests info to log """
     print("endpoint: {0}".format(url))
     print("method: {0}".format(method))
+    print("request header: {0}".format(headers))
+    if data is not None:
+        print("request body: {0}".format(data))
+    if json is not None:
+        print("request body: {0}".format(json))
     print("start timestamp: {0}".format(datetime.datetime.now()))
     response = requests.request(method=method, url=url, data=data, json=json, headers=headers)
     print("end timestamp: {0}".format(datetime.datetime.now()))
