@@ -1,0 +1,30 @@
+{
+    "addons": [
+      {
+        "plan": "heroku-postgresql:hobby-dev",
+        "options": {
+          "version": "11"
+        }
+      },
+      {
+        "plan": "heroku-redis:hobby-dev",
+        "options": {
+          "version": "5.0.4"
+        }
+      }
+    ],
+    "buildpacks": [
+      {
+        "url": "heroku/python"
+      }
+    ],
+    "env": {
+    },
+    "formation": {
+    },
+    "name": "bluebeam-microservice",
+    "scripts": {
+      "postdeploy": "pipenv run alembic upgrade head"
+    },
+    "stack": "heroku-18"
+  }

@@ -18,6 +18,12 @@ pre-commit = "*"
 pylint = "*"
 requests = "*"
 requests-oauthlib = "*"
+sqlalchemy = "*"
+alembic = "*"
+psycopg2 = "*"
+mako = "*"
+redis = "*"
+celery = "*"
 
 [requires]
 python_version = "3.7"

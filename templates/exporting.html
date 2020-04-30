@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <title>Bluebeam Exporting</title>
+        <link rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+            crossorigin="anonymous">
+    </head>
+    <body>
+        <script>
+            var exportId = '${export_id}';
+        </script>
+        <div class="container-fluid" id="app">
+            <div class="row h-100" id="spinner" v-if="isExporting">
+                <div class="col-sm-12 my-auto text-center">
+                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="sr-only">Exporting...</span>
+                    </div> 
+                    <h2 class="mx-auto text-center pt-3" style="display:block; width:400px;">
+                    Exporting...
+                    </h2>
+                </div>
+            </div>
+            <div class="row h-100" id="done-content" v-if="!isExporting">
+                <div class="col-sm-12 my-auto">
+                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="successCount > 0">
+                        {{ successCount }} submission(s) exported.
+                    </h2>
+                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="fails.length > 0">
+                        {{ fails.length }} submission(s) failed.
+                    </h2>    
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="/static/js/exporting.js"></script>
+    </body>
+</html>

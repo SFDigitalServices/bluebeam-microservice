@@ -9,7 +9,15 @@ jobs:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       - image: circleci/python:3.7.2
-      
+        environment:
+          DATABASE_URL: postgres://circleci@127.0.0.1:5432/circle_test
+          REDIS_URL: redis://redis@127.0.0.1:6379
+      - image: circleci/postgres:11.2
+        environment:
+          POSTGRES_USER: circleci
+          POSTGRES_DB: circle_test
+      - image: circleci/redis:5.0.4
+
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -27,6 +35,9 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
+      - run: sudo apt-get update
+      - run: sudo apt-get install postgresql-client
+      - run: sudo apt-get install vim-tiny
       - run:
           name: install dependencies
           command: |
@@ -50,7 +61,16 @@ jobs:
             pipenv run gunicorn 'service.microservice:start_service()'
           background: true
 
-        
+      - run:
+          name: start celery worker
+          command: |
+            pipenv run celery worker
+          background: true
+
+      - run:
+          name: run db migrations
+          command: |
+            pipenv run alembic upgrade head
 
       # run tests!
       # this example uses Django's built-in test-runner
@@ -60,7 +80,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            pipenv run python -m pytest --cov=service tests/ --cov-fail-under=100
+            pipenv run python -m pytest --cov=service --cov=tasks tests/ --cov-fail-under=100
             pipenv run coveralls
 
 

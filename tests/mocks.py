@@ -69,3 +69,31 @@ INIT_FILE_UPLOAD_RESPONSE = {
     "UploadUrl": "https://upload.here.com",
     "UploadContentType": "application/pdf"
 }
+
+SUBMISSION_POST_DATA = {
+    "address": "123 Market St.",
+    "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny",
+    "files": [{
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "originalName": "dummy.pdf"
+    }]
+}
+
+ACCESS_TOKEN_RESPONSE = {
+    "access_token": "SECRET-TOKEN",
+    "token_type": "bearer",
+    "expires_in": 3599,
+    "refresh_token": "REFRESH-TOKEN",
+    "userName": "user@user.com",
+    "client_id": "client-id",
+    "scope": "full_prime",
+    "refresh_token_expires_in": "5184000",
+    ".issued": "Wed, 08 Apr 2020 23:56:52 GMT",
+    ".expires": "Thu, 09 Apr 2020 00:56:52 GMT"
+}
+
+INVALID_GRANT_RESPONSE = {
+    "error": "invalid_grant"
+}
