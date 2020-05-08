@@ -83,6 +83,7 @@ def bluebeam_export(self, export_obj, access_code):
                 statuses['success'].append(submission.id)
                 submission.date_exported = datetime.utcnow()
                 submission.bluebeam_project_id = project_id
+                submission.pdf_folder_id = pdf_folder_id
             else:
                 print(ERR_NO_PDF_FOLDER)
                 raise Exception(ERR_NO_PDF_FOLDER)
