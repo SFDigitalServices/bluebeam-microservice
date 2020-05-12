@@ -114,7 +114,7 @@ def test_submission(mock_env_access_key, client):
     response = client.simulate_post(
         '/submission',
         json={
-            i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'project_name'
+            i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'project_name' # pylint: disable=line-too-long
         }
     )
     assert response.status_code == 500
