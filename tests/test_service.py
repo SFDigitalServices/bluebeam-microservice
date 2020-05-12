@@ -113,7 +113,7 @@ def test_submission(mock_env_access_key, client):
 
     response = client.simulate_post(
         '/submission',
-        json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'address'}
+        json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'project_name'}
     )
     assert response.status_code == 500
 

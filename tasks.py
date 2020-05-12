@@ -50,7 +50,7 @@ def bluebeam_export(self, export_obj, access_code):
 
             # create project in bluebeam
             now = datetime.now()
-            project_name = now.strftime('%Y-%m%d-%H%M%S') + " " + submission.data['address']
+            project_name = now.strftime('%Y-%m%d-%H%M%S') + " " + submission.data['project_name']
             project_id = bluebeam.create_project(access_code, project_name)
 
             # create directory structure

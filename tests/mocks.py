@@ -71,7 +71,7 @@ INIT_FILE_UPLOAD_RESPONSE = {
 }
 
 SUBMISSION_POST_DATA = {
-    "address": "123 Market St.",
+    "project_name": "123 Market St.",
     "email": "test@test.com",
     "phone": "415-867-5309",
     "name": "Jenny",
