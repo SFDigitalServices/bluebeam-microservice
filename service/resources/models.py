@@ -45,8 +45,8 @@ def create_submission(db_session, json_data):
 def validate(json_params):
     """enforce validation rules"""
     #pylint: disable=unused-argument
-    if 'address' not in json_params:
-        raise Exception("address is a required field")
+    if 'project_name' not in json_params:
+        raise Exception("project_name is a required field")
 
     if 'files' not in json_params or len(json_params['files']) == 0:
         raise Exception("at least one file is required")
