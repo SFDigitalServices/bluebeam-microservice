@@ -18,18 +18,21 @@ BLUEBEAM_TOKEN_PATH = '/auth/token'
 # PASSWORD = os.environ.get('BLUEBEAM_PASSWORD')
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
+UPLOAD_DIR_NAME = "3.DOCUMENTS FOR REVIEW"
 DIRECTORY_STRUCTURE = [
     {"name": "CCSF EPR", "subdirs":[
         {"name": "A.PERMIT SUBMITTAL", "subdirs":[
             {"name": "1.PERMIT FORMS"},
             {"name": "2.ROUTING FORMS"},
-            {"name": "3.DOCUMENTS FOR REVIEW", "pdf_uploads": True} # there can be only one
+            {"name": UPLOAD_DIR_NAME, "pdf_uploads": True} # there can be only one
         ]},
         {"name": "B.APPROVED DOCUMENTS", "subdirs":[
             {"name": "1.BUILDING PERMIT DOCUMENTS"}
         ]}
     ]}
 ]
+
+ERR_NO_UPLOAD_DIR_FOUND = "Could not find the upload directory on Bluebeam"
 
 def timer(func):
     """
@@ -128,6 +131,20 @@ def delete_project(access_token, project_id):
     )
 
 @timer
+def project_exists(access_token, project_id):
+    """
+        determines if a project_id is valid
+    """
+    response = bluebeam_request(
+        'get',
+        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id),
+        headers={
+            'Authorization': 'Bearer ' + access_token
+        }
+    )
+    return response.status_code == 200
+
+@timer
 def create_folder(access_token, project_id, folder_name, comment='', parent_folder_id=0):
     """
         creates a folder in a project
@@ -148,18 +165,31 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
     print("Created folder id:{0}".format(idee))
     return idee
 
-# @timer
-# def get_folders(access_token, project_id):
-#     """
-#         gets all folders in a project
-#     """
-#     response = requests.get(
-#         BLUEBEAM_API_BASE_URL + "/projects/" + project_id + "/folders",
-#         headers={
-#             'Authorization': 'Bearer ' + access_token
-#         },
-#     )
-#     return response.json()
+@timer
+def get_folders(access_token, project_id):
+    """
+        gets all folders in a project
+    """
+    response = bluebeam_request(
+        'get',
+        BLUEBEAM_API_BASE_URL + "/projects/" + project_id + "/folders",
+        headers={
+            'Authorization': 'Bearer ' + access_token
+        }
+    )
+    response_json = response.json()
+    return response_json['ProjectFolders']
+
+def get_upload_dir_id(access_token, project_id):
+    """
+        finds the upload folder id of a bluebeam project
+    """
+    project_dirs = get_folders(access_token, project_id)
+    for folder in project_dirs:
+        if folder['Name'] == UPLOAD_DIR_NAME:
+            return folder['Id']
+
+    raise Exception(ERR_NO_UPLOAD_DIR_FOUND)
 
 def upload_file(access_token, project_id, file_name, file_content, folder_id):
     """

@@ -45,15 +45,130 @@ GET_FOLDERS_RESPONSE = {
     "ProjectFolders": [
         {
             "$id": "2",
-            "Id": 135399569,
-            "Name": "my-awesome-folder",
-            "Path": "/my-awesome-folder",
-            "ParentFolderId": 135399567,
-            "Created": "2020-01-30T23:19:57.64",
+            "Id": 147572933,
+            "Name": "CCSF EPR",
+            "Path": "/CCSF EPR",
+            "ParentFolderId": 147572931,
+            "Created": "2020-05-18T23:12:17.873",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "3",
+            "Id": 147572934,
+            "Name": "A.PERMIT SUBMITTAL",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL",
+            "ParentFolderId": 147572933,
+            "Created": "2020-05-18T23:12:18.357",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "4",
+            "Id": 147572940,
+            "Name": "B.APPROVED DOCUMENTS",
+            "Path": "/CCSF EPR/B.APPROVED DOCUMENTS",
+            "ParentFolderId": 147572933,
+            "Created": "2020-05-18T23:12:20.67",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "5",
+            "Id": 147572935,
+            "Name": "1.PERMIT FORMS",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/1.PERMIT FORMS",
+            "ParentFolderId": 147572934,
+            "Created": "2020-05-18T23:12:18.887",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "6",
+            "Id": 147572937,
+            "Name": "2.ROUTING FORMS",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/2.ROUTING FORMS",
+            "ParentFolderId": 147572934,
+            "Created": "2020-05-18T23:12:19.403",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "7",
+            "Id": 147572938,
+            "Name": "3.DOCUMENTS FOR REVIEW",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/3.DOCUMENTS FOR REVIEW",
+            "ParentFolderId": 147572934,
+            "Created": "2020-05-18T23:12:19.887",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "8",
+            "Id": 147572943,
+            "Name": "1.BUILDING PERMIT DOCUMENTS",
+            "Path": "/CCSF EPR/B.APPROVED DOCUMENTS/1.BUILDING PERMIT DOCUMENTS",
+            "ParentFolderId": 147572940,
+            "Created": "2020-05-18T23:12:21.153",
             "Permission": "ReadWriteDelete"
         }
     ],
-    "TotalCount": 1
+    "TotalCount": 7
+}
+
+GET_FOLDERS_RESPONSE_NO_UPLOAD = {
+    "$id": "1",
+    "ProjectFolders": [
+        {
+            "$id": "2",
+            "Id": 147572933,
+            "Name": "CCSF EPR",
+            "Path": "/CCSF EPR",
+            "ParentFolderId": 147572931,
+            "Created": "2020-05-18T23:12:17.873",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "3",
+            "Id": 147572934,
+            "Name": "A.PERMIT SUBMITTAL",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL",
+            "ParentFolderId": 147572933,
+            "Created": "2020-05-18T23:12:18.357",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "4",
+            "Id": 147572940,
+            "Name": "B.APPROVED DOCUMENTS",
+            "Path": "/CCSF EPR/B.APPROVED DOCUMENTS",
+            "ParentFolderId": 147572933,
+            "Created": "2020-05-18T23:12:20.67",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "5",
+            "Id": 147572935,
+            "Name": "1.PERMIT FORMS",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/1.PERMIT FORMS",
+            "ParentFolderId": 147572934,
+            "Created": "2020-05-18T23:12:18.887",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "6",
+            "Id": 147572937,
+            "Name": "2.ROUTING FORMS",
+            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/2.ROUTING FORMS",
+            "ParentFolderId": 147572934,
+            "Created": "2020-05-18T23:12:19.403",
+            "Permission": "ReadWriteDelete"
+        },
+        {
+            "$id": "7",
+            "Id": 147572943,
+            "Name": "1.BUILDING PERMIT DOCUMENTS",
+            "Path": "/CCSF EPR/B.APPROVED DOCUMENTS/1.BUILDING PERMIT DOCUMENTS",
+            "ParentFolderId": 147572940,
+            "Created": "2020-05-18T23:12:21.153",
+            "Permission": "ReadWriteDelete"
+        }
+    ],
+    "TotalCount": 6
 }
 
 CREATE_PROJECT_RESPONSE = {
@@ -73,6 +188,18 @@ INIT_FILE_UPLOAD_RESPONSE = {
 SUBMISSION_POST_DATA = {
     "project_name": "123 Market St.",
     "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny",
+    "files": [{
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "originalName": "dummy.pdf"
+    }]
+}
+
+RESUBMISSION_POST_DATA = {
+    "project_name": "1231 Stevenson",
+    "project_id": "123-456-789",
+    "email": "resubmit-test@test.com",
     "phone": "415-867-5309",
     "name": "Jenny",
     "files": [{

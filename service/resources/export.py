@@ -82,7 +82,7 @@ class Export():
                         {
                             'response_type': 'code',
                             'client_id': bluebeam.BLUEBEAM_CLIENT_ID,
-                            'scope': 'full_prime',
+                            'scope': 'full_user',
                             'redirect_uri': self.create_redirect_url(
                                 _req.forwarded_scheme,
                                 _req.forwarded_host,
