@@ -44,17 +44,20 @@ def create_submission(db_session, json_data):
 def validate(json_params):
     """enforce validation rules"""
     #pylint: disable=unused-argument
-    if 'project_name' not in json_params:
-        raise Exception("project_name is a required field")
 
-    if 'files' not in json_params or len(json_params['files']) == 0:
-        raise Exception("at least one file is required")
+    # either project_name or project_id is required
+    # project_name required for new bluebeam projects
+    # project_id required for resubmissions
+    if 'project_name' not in json_params and 'project_id' not in json_params:
+        raise Exception("Either project_name or project_id is required")
 
-    for f in json_params['files']: #pylint: disable=invalid-name
-        if not 'url' in f or not is_url(f['url']):
-            raise Exception("invalid file url")
-        if not 'originalName' in f:
-            raise Exception("missing originalName in file json")
+    # when uploading files to bluebeam, need url and orginal_name
+    if 'files' in json_params and len(json_params['files']) > 0:
+        for f in json_params['files']: #pylint: disable=invalid-name
+            if not 'url' in f or not is_url(f['url']):
+                raise Exception("invalid file url")
+            if not 'original_name' in f:
+                raise Exception("missing original_name in file json")
 
     return json_params
 

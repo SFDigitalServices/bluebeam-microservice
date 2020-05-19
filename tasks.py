@@ -120,7 +120,7 @@ def upload_files(project_id, upload_dir_id, files, access_code):
         file_url = f['url']
         response = urllib.request.urlopen(file_url)
         file_download = response.read()
-        file_name = f['originalName']
+        file_name = f['original_name']
 
         is_upload_successful = bluebeam.upload_file(
             access_code,

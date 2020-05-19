@@ -110,6 +110,7 @@ def test_submission(mock_env_access_key, client):
     )
     assert response.status_code == 500
 
+    # no project_name nor project_id
     response = client.simulate_post(
         '/submission',
         json={
@@ -118,12 +119,7 @@ def test_submission(mock_env_access_key, client):
     )
     assert response.status_code == 500
 
-    response = client.simulate_post(
-        '/submission',
-        json={i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'files'}
-    )
-    assert response.status_code == 500
-
+    # malformed files
     submission_post_data = mocks.SUBMISSION_POST_DATA.copy()
     submission_post_data['files'] = 'a'
     response = client.simulate_post(
