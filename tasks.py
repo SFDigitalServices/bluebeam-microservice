@@ -65,10 +65,10 @@ def bluebeam_export(self, export_obj, access_code):
 
                     # generate project name and
                     # create project in bluebeam
-                    if 'ban' in submission.data:
+                    if 'building_permit_number' in submission.data:
                         project_name = "{0} - {1}".format(
                             submission.data['project_name'],
-                            submission.data['ban']
+                            submission.data['building_permit_number']
                         )
                     else:
                         project_name = submission.data['project_name']

@@ -193,15 +193,15 @@ def test_export_task_new_project():
     # clear out the queue
     queue.control.purge()
 
-def test_export_task_new_project_with_ban():
+def test_export_task_new_project_with_permit_number():
     # pylint: disable=unused-argument
     """Test the export task"""
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
-    submission_data_with_ban = mocks.SUBMISSION_POST_DATA.copy()
-    submission_data_with_ban['ban'] = 'a'
-    create_submission(db, submission_data_with_ban)
+    submission_data_with_permit = mocks.SUBMISSION_POST_DATA.copy()
+    submission_data_with_permit['building_permit_number'] = '202001011234'
+    create_submission(db, submission_data_with_permit)
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
