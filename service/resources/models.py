@@ -32,7 +32,6 @@ class SubmissionModel(BASE):
         sa.ForeignKey('export_status.guid')
     )
     export_status = relationship('ExportStatusModel', foreign_keys=[export_status_guid])
-    upload_dir_id = sa.Column('upload_dir_id', sa.Integer)
 
 def create_submission(db_session, json_data):
     """helper function for creating a submission"""

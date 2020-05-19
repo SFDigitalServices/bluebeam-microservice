@@ -13,8 +13,7 @@ import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
     create_export, create_submission, is_url
 from service.resources.db import create_session, db_engine
-from tasks import celery_app as queue, bluebeam_export, ERR_NO_PDF_FOLDER,\
-    ERR_UPLOAD_FAIL
+from tasks import celery_app as queue, bluebeam_export, ERR_UPLOAD_FAIL
 
 CLIENT_HEADERS = {
     "ACCESS_KEY": "1234567"
@@ -152,10 +151,9 @@ def test_is_url():
     assert not is_url(True)
     assert is_url('http://foo.com')
 
-def test_export_task():
+def test_export_task_new_project():
     # pylint: disable=unused-argument
     """Test the export task"""
-    print("test_export_task")
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
@@ -190,6 +188,161 @@ def test_export_task():
 
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
+        assert len(export_obj.result['failure']) == 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_new_project_with_permit_number():
+    # pylint: disable=unused-argument
+    """Test the export task"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a submission so there's something to export
+    submission_data_with_permit = mocks.SUBMISSION_POST_DATA.copy()
+    submission_data_with_permit['building_permit_number'] = '202001011234'
+    create_submission(db, submission_data_with_permit)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = [Mock()] * 11
+        # create project
+        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        # create folders
+        i = 1
+        while i < 8:
+            fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+            i += 1
+        # initiate upload
+        fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses[9].return_value.status_code = 200
+        # confirm upload
+        fake_post_responses[10].status_code = 204
+
+        mock_post.side_effect = fake_post_responses
+
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) > 0
+        assert len(export_obj.result['failure']) == 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_resubmission():
+    # pylint: disable=unused-argument
+    """Test the export resubmission task"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a resubmission so there's something to export
+    create_submission(db, mocks.RESUBMISSION_POST_DATA)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_reqs:
+        fake_responses = []
+        # project exists
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 200
+        # get folders
+        fake_responses.append(Mock())
+        fake_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # initiate upload
+        fake_responses.append(Mock())
+        fake_responses[2].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_responses.append(Mock())
+        fake_responses[3].return_value.status_code = 200
+        # confirm upload
+        fake_responses.append(Mock())
+        fake_responses[4].status_code = 204
+
+        mock_reqs.side_effect = fake_responses
+
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) > 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_resubmission_no_upload_dir():
+    # pylint: disable=unused-argument
+    """Test the export resubmission task"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a resubmission so there's something to export
+    create_submission(db, mocks.RESUBMISSION_POST_DATA)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_reqs:
+        fake_responses = []
+        # project exists
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 200
+        # get folders
+        fake_responses.append(Mock())
+        fake_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE_NO_UPLOAD
+
+        mock_reqs.side_effect = fake_responses
+
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) == 0
+        assert len(export_obj.result['failure']) > 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_resubmission_no_project():
+    # pylint: disable=unused-argument
+    """Test the export resubmission task"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a resubmission so there's something to export
+    create_submission(db, mocks.RESUBMISSION_POST_DATA)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_reqs:
+        fake_responses = []
+        # project exists
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 404
+
+        mock_reqs.side_effect = fake_responses
+
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) == 0
+        assert len(export_obj.result['failure']) > 0
 
     # clear out the queue
     queue.control.purge()
@@ -237,7 +390,7 @@ def test_export_task_file_upload_error():
     # clear out the queue
     queue.control.purge()
 
-def test_export_task_no_pdf_folder():
+def test_export_task_no_upload_folder():
     # pylint: disable=unused-argument
     """Test the export task"""
     # don't include previous submission
@@ -274,7 +427,7 @@ def test_export_task_no_pdf_folder():
             db.refresh(export_obj)
             assert export_obj.date_finished is not None
             assert len(export_obj.result['failure']) > 0
-            assert export_obj.result['failure'][-1]['err'] == ERR_NO_PDF_FOLDER
+            assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
@@ -284,7 +437,6 @@ def test_export(mock_env_access_key, client):
     """
         tests the export ui
     """
-    print("test_export")
     # clear up entries in db
     finish_submissions_exports()
 
