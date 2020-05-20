@@ -1,10 +1,12 @@
 """defining celery task for background processing of bluebeam-microservice"""
 # pylint: disable=too-many-locals
 
-# import sys
-# import traceback
+import os
+from io import BytesIO
 from datetime import datetime
 import urllib.request
+from urllib.parse import urlparse
+import requests
 import celery
 from kombu import serialization
 import celeryconfig
@@ -116,10 +118,28 @@ def upload_files(project_id, upload_dir_id, files, access_code):
     """
         upload all the files to the upload dir of a project
     """
+    cloudstorage_url = os.environ.get('CLOUDSTORAGE_URL')
+    cloudstorage_api_key = os.environ.get('CLOUDSTORAGE_API_KEY')
+    bucketeer_domain = os.environ.get('BUCKETEER_DOMAIN')
+
     for f in files: #pylint: disable=invalid-name
         file_url = f['url']
-        response = urllib.request.urlopen(file_url)
-        file_download = response.read()
+        file_url_parsed = urlparse(file_url)
+
+        # use cloudstorage api to retrieve file
+        if file_url_parsed.netloc == bucketeer_domain:
+            response = requests.get(
+                cloudstorage_url,
+                params={
+                    'name':file_url_parsed.path[1:],
+                    'apikey':cloudstorage_api_key
+                }
+            )
+            print("upload_files cloud path:{0}".format(file_url_parsed.path[1:]))
+            file_download = BytesIO(response.content)
+        else:
+            response = urllib.request.urlopen(file_url)
+            file_download = response.read()
         file_name = f['originalName']
 
         is_upload_successful = bluebeam.upload_file(
