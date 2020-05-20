@@ -208,6 +208,17 @@ RESUBMISSION_POST_DATA = {
     }]
 }
 
+BUCKETEER_SUBMISSION_POST_DATA = {
+    "project_name": "1600 Pennsylvania Ave.",
+    "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny",
+    "files": [{
+        "url": "https://bucketeer.com/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "originalName": "dummy.pdf"
+    }]
+}
+
 ACCESS_TOKEN_RESPONSE = {
     "access_token": "SECRET-TOKEN",
     "token_type": "bearer",
