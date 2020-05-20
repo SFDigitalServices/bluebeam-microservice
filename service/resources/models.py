@@ -56,8 +56,8 @@ def validate(json_params):
         for f in json_params['files']: #pylint: disable=invalid-name
             if not 'url' in f or not is_url(f['url']):
                 raise Exception("invalid file url")
-            if not 'original_name' in f:
-                raise Exception("missing original_name in file json")
+            if not 'originalName' in f:
+                raise Exception("missing originalName in file json")
 
     return json_params
 

@@ -192,7 +192,7 @@ SUBMISSION_POST_DATA = {
     "name": "Jenny",
     "files": [{
         "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-        "original_name": "dummy.pdf"
+        "originalName": "dummy.pdf"
     }]
 }
 
@@ -204,7 +204,7 @@ RESUBMISSION_POST_DATA = {
     "name": "Jenny",
     "files": [{
         "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-        "original_name": "dummy.pdf"
+        "originalName": "dummy.pdf"
     }]
 }
 
