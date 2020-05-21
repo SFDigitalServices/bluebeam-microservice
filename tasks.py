@@ -48,7 +48,7 @@ def bluebeam_export(self, export_obj, access_code):
         project_id = submission.data.get('project_id', None)
         upload_dir_id = None
         try:
-            if project_id is not None:
+            if project_id and project_id is not None:
                 # resubmission
                 print("export:resubmission - {0}".format(submission.id))
                 print("project_id: {0}".format(project_id))
