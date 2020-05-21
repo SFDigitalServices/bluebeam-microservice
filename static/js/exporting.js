@@ -19,8 +19,8 @@ var app = new Vue({
             }).then(function(response){
                 if (response.data.data.is_finished) {
                     self.isExporting = false;
-                    self.successCount = response.data.data.success_count;
-                    self.fails = response.data.data.failures;
+                    self.success = response.data.data.success;
+                    self.failure = response.data.data.failure;
                 } else {
                     setTimeout(self.checkExportStatus, self.pollingInterval);
                 }

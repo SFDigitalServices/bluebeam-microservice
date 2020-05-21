@@ -45,6 +45,9 @@ def bluebeam_export(self, export_obj, access_code):
     }
 
     for submission in submissions_to_export:
+        # update submission's export_guid in db
+        submission.export_status_guid = export_obj.guid
+
         project_id = submission.data.get('project_id', None)
         upload_dir_id = None
         try:
@@ -62,8 +65,6 @@ def bluebeam_export(self, export_obj, access_code):
                 # create bluebeam project
                 try:
                     print("export:submission - {0}".format(submission.id))
-                    # update submission's export_guid in db
-                    submission.export_status_guid = export_obj.guid
 
                     # generate project name and
                     # create project in bluebeam
@@ -90,7 +91,10 @@ def bluebeam_export(self, export_obj, access_code):
                     raise err
 
             # finished exporting this submission
-            statuses['success'].append(submission.id)
+            statuses['success'].append({
+                'submission_id': submission.id,
+                'bluebeam_id': project_id
+            })
             submission.date_exported = datetime.utcnow()
             submission.bluebeam_project_id = project_id
 
@@ -101,6 +105,7 @@ def bluebeam_export(self, export_obj, access_code):
             submission.error_message = err_msg
             statuses['failure'].append({
                 'id': submission.id,
+                'data': submission.data,
                 'err': err_msg
             })
 

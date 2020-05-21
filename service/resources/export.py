@@ -136,8 +136,8 @@ class ExportStatus():
                         }
                     resp.body = json.dumps(jsend.success({
                         'is_finished': export_status.date_finished is not None,
-                        'success_count': len(export_status.result['success']),
-                        'failures': export_status.result['failure']
+                        'success': export_status.result['success'],
+                        'failure': export_status.result['failure']
                     }))
                 else:
                     raise Exception("Invalid export_id")

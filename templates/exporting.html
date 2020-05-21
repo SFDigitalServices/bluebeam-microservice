@@ -23,12 +23,29 @@
             </div>
             <div class="row h-100" id="done-content" v-if="!isExporting">
                 <div class="col-sm-12 my-auto">
-                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="successCount > 0">
-                        {{ successCount }} submission(s) exported.
+                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="success.length > 0">
+                        {{ success.length }} submission(s) exported successfully.
                     </h2>
-                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="fails.length > 0">
-                        {{ fails.length }} submission(s) failed.
-                    </h2>    
+                    <h4 v-if="success.length > 0">
+                        Bluebeam ID: {{ success.map(function(val, idx){ return val['bluebeam_id']}).join(', ') }}
+                    </h4>
+                    <h2 class="mx-auto text-left" style="display:block; width:400px;" v-if="failure.length > 0">
+                        {{ failure.length }} submission(s) failed.
+                    </h2>
+                    <table class="table" v-if="failure.length > 0">
+                        <thead>
+                            <tr>
+                                <th scope="col">data</th>
+                                <th scope="col">error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="fail in failure">
+                                <td>{{fail['data']}}</td>
+                                <td>{{fail['err']}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
