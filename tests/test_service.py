@@ -162,20 +162,31 @@ def test_export_task_new_project(mock_env_access_key):
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
-        fake_post_responses = [Mock()] * 11
+        fake_post_responses = []
         # create project
+        fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
         while i < 8:
+            fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
-        fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
-        fake_post_responses[9].return_value.status_code = 200
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].return_value.status_code = 200
         # confirm upload
-        fake_post_responses[10].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -204,20 +215,31 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
-        fake_post_responses = [Mock()] * 11
+        fake_post_responses = []
         # create project
+        fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
         while i < 8:
+            fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
-        fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
-        fake_post_responses[9].return_value.status_code = 200
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].return_value.status_code = 200
         # confirm upload
-        fake_post_responses[10].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -252,20 +274,31 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
-        fake_post_responses = [Mock()] * 11
+        fake_post_responses = []
         # create project
+        fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
         while i < 8:
+            fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
-        fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
-        fake_post_responses[9].return_value.status_code = 200
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].return_value.status_code = 200
         # confirm upload
-        fake_post_responses[10].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -301,15 +334,21 @@ def test_export_task_resubmission(mock_env_access_key):
         # get folders
         fake_responses.append(Mock())
         fake_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # get folders
+        fake_responses.append(Mock())
+        fake_responses[2].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_responses.append(Mock())
+        fake_responses[3].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_responses.append(Mock())
-        fake_responses[2].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_responses[4].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_responses.append(Mock())
-        fake_responses[3].return_value.status_code = 200
+        fake_responses[5].return_value.status_code = 200
         # confirm upload
         fake_responses.append(Mock())
-        fake_responses[4].status_code = 204
+        fake_responses[6].status_code = 204
 
         mock_reqs.side_effect = fake_responses
 
@@ -404,22 +443,34 @@ def test_export_task_file_upload_error(mock_env_access_key):
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected outbound requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
-        fake_post_responses = [Mock()] * 12
+        fake_post_responses = []
         # create project
+        fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
         while i < 8:
+            fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
-        fake_post_responses[8].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
-        fake_post_responses[9] = Exception("Generic Error")
+        fake_post_responses.append(Mock())
+        fake_post_responses[11] = Exception("Generic Error")
         # confirm upload
-        fake_post_responses[10].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
         # delete project
-        fake_post_responses[11].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -447,16 +498,19 @@ def test_export_task_no_upload_folder(mock_env_access_key):
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected outbound requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
-        fake_post_responses = [Mock()] * 10
+        fake_post_responses = []
         # create project
+        fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
         while i < 8:
+            fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # delete project
-        fake_post_responses[9].status_code = 204
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
