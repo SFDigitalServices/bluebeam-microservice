@@ -19,6 +19,7 @@ BLUEBEAM_TOKEN_PATH = '/auth/token'
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
 UPLOAD_DIR_NAME = "3.DOCUMENTS FOR REVIEW"
+SUBMITTAL_DIR_NAME = "SUBMITTAL"
 DIRECTORY_STRUCTURE = [
     {"name": "CCSF EPR", "subdirs":[
         {"name": "A.PERMIT SUBMITTAL", "subdirs":[
@@ -170,9 +171,10 @@ def get_folders(access_token, project_id):
     """
         gets all folders in a project
     """
+    print("bluebeam.get_folders")
     response = bluebeam_request(
         'get',
-        BLUEBEAM_API_BASE_URL + "/projects/" + project_id + "/folders",
+        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/folders",
         headers={
             'Authorization': 'Bearer ' + access_token
         }
@@ -184,12 +186,23 @@ def get_upload_dir_id(access_token, project_id):
     """
         finds the upload folder id of a bluebeam project
     """
-    project_dirs = get_folders(access_token, project_id)
-    for folder in project_dirs:
-        if folder['Name'] == UPLOAD_DIR_NAME:
-            return folder['Id']
+    dir_id = dir_exists(UPLOAD_DIR_NAME, project_id, access_token)
+    if not dir_id:
+        raise Exception(ERR_NO_UPLOAD_DIR_FOUND)
 
-    raise Exception(ERR_NO_UPLOAD_DIR_FOUND)
+    return dir_id
+
+def dir_exists(name, project_id, access_token, dirs_array=None):
+    """
+        returns directory id if it exists in the project, false otherwise
+    """
+    if dirs_array is None:
+        dirs_array = get_folders(access_token, project_id)
+
+    for folder in dirs_array:
+        if folder['Name'] == name:
+            return folder['Id']
+    return False
 
 def upload_file(access_token, project_id, file_name, file_content, folder_id):
     """
@@ -197,8 +210,24 @@ def upload_file(access_token, project_id, file_name, file_content, folder_id):
     """
     try:
         print("bluebeam.upload_file:{0}".format(file_name))
+
+        upload_dir_of_the_day = SUBMITTAL_DIR_NAME + " " + str(datetime.date.today())
+        upload_dir_of_the_day_id = dir_exists(upload_dir_of_the_day, project_id, access_token)
+        if not upload_dir_of_the_day_id:
+            upload_dir_of_the_day_id = create_folder(
+                access_token,
+                project_id,
+                upload_dir_of_the_day,
+                parent_folder_id=folder_id
+            )
+
         # find out where to upload file
-        response_json = initiate_upload(access_token, project_id, file_name, folder_id)
+        response_json = initiate_upload(
+            access_token,
+            project_id,
+            file_name,
+            upload_dir_of_the_day_id
+        )
         upload_url = response_json['UploadUrl']
         file_id = response_json['Id']
         upload_content_type = response_json['UploadContentType']
@@ -218,6 +247,7 @@ def initiate_upload(acccess_code, project_id, file_name, folder_id):
     """
         initate file upload with bluebeam
     """
+    print("bluebeam.initiate_upload")
     response = bluebeam_request(
         'post',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/files",
@@ -236,6 +266,7 @@ def upload(upload_url, file_contents, content_type):
     """
         uploads file
     """
+    print("bluebeam.upload")
     bluebeam_request(
         'put',
         upload_url,
@@ -251,6 +282,7 @@ def confirm_upload(access_token, project_id, file_id):
     """
         true/false confirm upload with bluebeam
     """
+    print("bluebeam.confirm_upload")
     response = bluebeam_request(
         'post',
         BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) +
@@ -266,7 +298,7 @@ def create_directories(access_code, project_id, directories, parent_folder_id=0)
         Recursive function for creating directories
         Returns pdf upload directory id if it was created, otherwise None
     """
-    print("create_directories")
+    print("bluebeam.create_directories")
     pdf_folder_id = None
     for folder in directories:
         folder_id = create_folder(access_code,\
