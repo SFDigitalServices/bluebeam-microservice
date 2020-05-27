@@ -81,24 +81,15 @@ GET_FOLDERS_RESPONSE = {
         },
         {
             "$id": "6",
-            "Id": 147572937,
-            "Name": "2.ROUTING FORMS",
-            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/2.ROUTING FORMS",
-            "ParentFolderId": 147572934,
-            "Created": "2020-05-18T23:12:19.403",
-            "Permission": "ReadWriteDelete"
-        },
-        {
-            "$id": "7",
             "Id": 147572938,
-            "Name": "3.DOCUMENTS FOR REVIEW",
+            "Name": "2.DOCUMENTS FOR REVIEW",
             "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/3.DOCUMENTS FOR REVIEW",
             "ParentFolderId": 147572934,
             "Created": "2020-05-18T23:12:19.887",
             "Permission": "ReadWriteDelete"
         },
         {
-            "$id": "8",
+            "$id": "7",
             "Id": 147572943,
             "Name": "1.BUILDING PERMIT DOCUMENTS",
             "Path": "/CCSF EPR/B.APPROVED DOCUMENTS/1.BUILDING PERMIT DOCUMENTS",
@@ -151,15 +142,6 @@ GET_FOLDERS_RESPONSE_NO_UPLOAD = {
         },
         {
             "$id": "6",
-            "Id": 147572937,
-            "Name": "2.ROUTING FORMS",
-            "Path": "/CCSF EPR/A.PERMIT SUBMITTAL/2.ROUTING FORMS",
-            "ParentFolderId": 147572934,
-            "Created": "2020-05-18T23:12:19.403",
-            "Permission": "ReadWriteDelete"
-        },
-        {
-            "$id": "7",
             "Id": 147572943,
             "Name": "1.BUILDING PERMIT DOCUMENTS",
             "Path": "/CCSF EPR/B.APPROVED DOCUMENTS/1.BUILDING PERMIT DOCUMENTS",

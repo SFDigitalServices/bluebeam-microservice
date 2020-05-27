@@ -168,25 +168,25 @@ def test_export_task_new_project(mock_env_access_key):
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
-        while i < 8:
+        while i < 7:
             fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # get folders
         fake_post_responses.append(Mock())
-        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
         # create folders
         fake_post_responses.append(Mock())
-        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_post_responses.append(Mock())
-        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_post_responses.append(Mock())
-        fake_post_responses[11].return_value.status_code = 200
+        fake_post_responses[10].return_value.status_code = 200
         # confirm upload
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[11].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -221,25 +221,25 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
-        while i < 8:
+        while i < 7:
             fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # get folders
         fake_post_responses.append(Mock())
-        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
         # create folders
         fake_post_responses.append(Mock())
-        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_post_responses.append(Mock())
-        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_post_responses.append(Mock())
-        fake_post_responses[11].return_value.status_code = 200
+        fake_post_responses[10].return_value.status_code = 200
         # confirm upload
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[11].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -280,25 +280,25 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
-        while i < 8:
+        while i < 7:
             fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # get folders
         fake_post_responses.append(Mock())
-        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
         # create folders
         fake_post_responses.append(Mock())
-        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_post_responses.append(Mock())
-        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_post_responses.append(Mock())
-        fake_post_responses[11].return_value.status_code = 200
+        fake_post_responses[10].return_value.status_code = 200
         # confirm upload
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[11].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -449,28 +449,28 @@ def test_export_task_file_upload_error(mock_env_access_key):
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
         # create folders
         i = 1
-        while i < 8:
+        while i < 7:
             fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # get folders
         fake_post_responses.append(Mock())
-        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
         # create folders
         fake_post_responses.append(Mock())
-        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_post_responses.append(Mock())
-        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_post_responses.append(Mock())
-        fake_post_responses[11] = Exception("Generic Error")
+        fake_post_responses[10] = Exception("Generic Error")
         # confirm upload
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[11].status_code = 204
         # delete project
         fake_post_responses.append(Mock())
-        fake_post_responses[13].status_code = 204
+        fake_post_responses[12].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
