@@ -113,7 +113,13 @@ def create_project(access_token, project_name):
             "Notification": True,
             "Restricted": True
         })
-    idee = response.json()['Id']
+    response_json = response.json()
+
+    if response.status_code != 200:
+        raise Exception("Error creating project in Bluebeam.  ErrorCode:{0}".format(
+            response_json['ErrorCode']
+        ))
+    idee = response_json['Id']
     print("Created project id:{0}".format(idee))
     return idee
 

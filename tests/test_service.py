@@ -8,7 +8,7 @@ import jsend
 import pytest
 from falcon import testing
 import service.microservice
-# import service.resources.bluebeam as bluebeam
+import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
     create_export, create_submission, is_url
@@ -151,6 +151,15 @@ def test_is_url():
     assert not is_url(True)
     assert is_url('http://foo.com')
 
+def test_bluebeam_create_project_invalid_name():
+    """ Test invalid bluebeam project name """
+    with patch('service.resources.bluebeam.requests.request') as mock_request:
+        mock_request.json.return_value = mocks.CREATE_PROJECT_RESPONSE_INVALID_NAME
+        mock_request.status_code = 400
+
+        with pytest.raises(Exception):
+            bluebeam.create_project("access_token", "invalid/character")
+
 def test_export_task_new_project(mock_env_access_key):
     # pylint: disable=unused-argument
     """Test the export task"""
@@ -166,6 +175,7 @@ def test_export_task_new_project(mock_env_access_key):
         # create project
         fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
         # create folders
         i = 1
         while i < 7:
@@ -219,6 +229,7 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
         # create project
         fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
         # create folders
         i = 1
         while i < 7:
@@ -278,6 +289,7 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
         # create project
         fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
         # create folders
         i = 1
         while i < 7:
@@ -447,6 +459,7 @@ def test_export_task_file_upload_error(mock_env_access_key):
         # create project
         fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
         # create folders
         i = 1
         while i < 7:
@@ -502,6 +515,7 @@ def test_export_task_no_upload_folder(mock_env_access_key):
         # create project
         fake_post_responses.append(Mock())
         fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
         # create folders
         i = 1
         while i < 8:
@@ -637,8 +651,11 @@ def finish_submissions_exports():
         sets the date_exported on all existing submissions and
         date_finished on all export_status in the database
     """
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+
     with db_engine.connect() as con:
-        sql = "UPDATE submission SET date_exported=now() at time zone 'utc' " +\
+        sql = "UPDATE submission SET date_exported=now() at time zone 'utc', " +\
+            "export_guid='" + str(export_obj.guid) + "' " +\
             "WHERE date_exported IS NULL"
         con.execute(sql)
 

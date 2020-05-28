@@ -37,7 +37,7 @@ def bluebeam_export(self, export_obj, access_code):
     session = create_session()
     db_session = session()
     submissions_to_export = db_session.query(SubmissionModel).filter( # pylint: disable=no-member
-        SubmissionModel.date_exported.is_(None)
+        SubmissionModel.export_status_guid.is_(None)
     )
     statuses = {
         'success': [],
