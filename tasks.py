@@ -57,7 +57,11 @@ def bluebeam_export(self, export_obj, access_code):
                 print("project_id: {0}".format(project_id))
                 if bluebeam.project_exists(access_code, project_id):
                     upload_dir_id = bluebeam.get_upload_dir_id(access_code, project_id)
-                    upload_files(project_id, upload_dir_id, submission.data['files'], access_code)
+                    upload_files(
+                        project_id,
+                        upload_dir_id,
+                        submission.data.get('files'),
+                        access_code)
                 else:
                     print(ERR_INVALID_PROJECT_ID)
                     raise Exception(ERR_INVALID_PROJECT_ID)
@@ -83,7 +87,11 @@ def bluebeam_export(self, export_obj, access_code):
                         project_id,
                         bluebeam.DIRECTORY_STRUCTURE
                     )
-                    upload_files(project_id, upload_dir_id, submission.data['files'], access_code)
+                    upload_files(
+                        project_id,
+                        upload_dir_id,
+                        submission.data.get('files'),
+                        access_code)
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
                     if project_id is not None:
@@ -126,6 +134,9 @@ def upload_files(project_id, upload_dir_id, files, access_code):
     cloudstorage_url = os.environ.get('CLOUDSTORAGE_URL')
     cloudstorage_api_key = os.environ.get('CLOUDSTORAGE_API_KEY')
     bucketeer_domain = os.environ.get('BUCKETEER_DOMAIN')
+
+    if files is None:
+        files = []
 
     for f in files: #pylint: disable=invalid-name
         file_url = f['url']
