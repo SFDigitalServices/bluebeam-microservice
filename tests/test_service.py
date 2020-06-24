@@ -214,6 +214,62 @@ def test_export_task_new_project(mock_env_access_key):
     # clear out the queue
     queue.control.purge()
 
+def test_export_task_new_project_no_files(mock_env_access_key):
+    # pylint: disable=unused-argument
+    """Test create a new project with no files"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a submission so there's something to export
+    create_submission(db, {
+        i:mocks.SUBMISSION_POST_DATA[i] for i in mocks.SUBMISSION_POST_DATA if i != 'files'
+    })
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = []
+        # create project
+        fake_post_responses.append(Mock())
+        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
+        # create folders
+        i = 1
+        while i < 7:
+            fake_post_responses.append(Mock())
+            fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+            i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        # initiate upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].return_value.status_code = 200
+        # confirm upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].status_code = 204
+
+        mock_post.side_effect = fake_post_responses
+
+        bluebeam_export.s(
+            export_obj=export_obj,
+            access_code=BLUEBEAM_ACCESS_CODE
+        ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) > 0
+        assert len(export_obj.result['failure']) == 0
+
+    # clear out the queue
+    queue.control.purge()
+
 def test_export_task_new_project_bucketeer(mock_env_access_key):
     # pylint: disable=unused-argument
     """Test the export task"""
