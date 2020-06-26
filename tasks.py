@@ -199,6 +199,7 @@ def log_status(status, submission_data):
     """
     try:
         logger_settings = submission_data.get('logger')
+        google_settings = None
         if logger_settings is not None and 'google_sheets' in logger_settings:
             google_settings = logger_settings.get('google_sheets')
             google_settings['label_value_map'] = {
@@ -212,4 +213,5 @@ def log_status(status, submission_data):
             response.raise_for_status()
     except Exception as err: # pylint: disable=broad-except
         print("Encountered error in log_status:{0}".format(err))
+        print("log data:{0}".format(google_settings))
         raise err
