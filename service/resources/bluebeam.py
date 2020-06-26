@@ -18,13 +18,12 @@ BLUEBEAM_TOKEN_PATH = '/auth/token'
 # PASSWORD = os.environ.get('BLUEBEAM_PASSWORD')
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
-UPLOAD_DIR_NAME = "3.DOCUMENTS FOR REVIEW"
+UPLOAD_DIR_NAME = "2.DOCUMENTS FOR REVIEW"
 SUBMITTAL_DIR_NAME = "SUBMITTAL"
 DIRECTORY_STRUCTURE = [
     {"name": "CCSF EPR", "subdirs":[
         {"name": "A.PERMIT SUBMITTAL", "subdirs":[
             {"name": "1.PERMIT FORMS"},
-            {"name": "2.ROUTING FORMS"},
             {"name": UPLOAD_DIR_NAME, "pdf_uploads": True} # there can be only one
         ]},
         {"name": "B.APPROVED DOCUMENTS", "subdirs":[
@@ -114,7 +113,13 @@ def create_project(access_token, project_name):
             "Notification": True,
             "Restricted": True
         })
-    idee = response.json()['Id']
+    response_json = response.json()
+
+    if response.status_code != 200:
+        raise Exception("Error creating project in Bluebeam.  ErrorCode:{0}".format(
+            response_json['ErrorCode']
+        ))
+    idee = response_json['Id']
     print("Created project id:{0}".format(idee))
     return idee
 
