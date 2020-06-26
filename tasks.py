@@ -1,5 +1,5 @@
 """defining celery task for background processing of bluebeam-microservice"""
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
 
 import os
 from io import BytesIO
