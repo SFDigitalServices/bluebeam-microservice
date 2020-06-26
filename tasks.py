@@ -23,8 +23,12 @@ celery_app = celery.Celery('bluebeam-microservice')
 celery_app.config_from_object(celeryconfig)
 # pylint: enable=invalid-name
 
+SPREADSHEETS_URL = os.environ.get('SPREADSHEETS_MICROSERVICE_URL').rstrip('/')
+SPREADSHEETS_API_KEY = os.environ.get('SPREADSHEETS_MICROSERVICE_API_KEY')
+
 ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
+STATUS_FILES_UPLOADED = "Files uploaded"
 
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
 def bluebeam_export(self, export_obj, access_code):
@@ -61,7 +65,8 @@ def bluebeam_export(self, export_obj, access_code):
                         project_id,
                         upload_dir_id,
                         submission.data.get('files'),
-                        access_code)
+                        access_code
+                    )
                 else:
                     print(ERR_INVALID_PROJECT_ID)
                     raise Exception(ERR_INVALID_PROJECT_ID)
@@ -91,12 +96,24 @@ def bluebeam_export(self, export_obj, access_code):
                         project_id,
                         upload_dir_id,
                         submission.data.get('files'),
-                        access_code)
+                        access_code
+                    )
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
                     if project_id is not None:
                         bluebeam.delete_project(access_code, project_id)
                     raise err
+
+            # log success to google sheets
+            if 'logger' in submission.data:
+                status = project_id
+                # distinguish between creating a new bluebeam project
+                # vs uploading files to existing project
+                if ('project_id' in submission.data and
+                        'files' in submission.data and
+                        len(submission.data['files']) > 0):
+                    status = STATUS_FILES_UPLOADED
+                log_status(status, submission.data)
 
             # finished exporting this submission
             statuses['success'].append({
@@ -116,6 +133,13 @@ def bluebeam_export(self, export_obj, access_code):
                 'data': submission.data,
                 'err': err_msg
             })
+
+            # log error to google sheets
+            try:
+                if 'logger' in submission.data:
+                    log_status(err_msg, submission.data)
+            except Exception as err: # pylint: disable=broad-except
+                pass
 
     # finished export
     export_status = db_session.query(ExportStatusModel).filter(
@@ -168,3 +192,24 @@ def upload_files(project_id, upload_dir_id, files, access_code):
         if not is_upload_successful:
             print(ERR_UPLOAD_FAIL)
             raise Exception(ERR_UPLOAD_FAIL)
+
+def log_status(status, submission_data):
+    """
+        log status to google sheets
+    """
+    try:
+        logger_settings = submission_data.get('logger')
+        if logger_settings is not None and 'google_sheets' in logger_settings:
+            google_settings = logger_settings.get('google_sheets')
+            google_settings['label_value_map'] = {
+                google_settings['status_column_label']:status
+            }
+            response = requests.patch(
+                SPREADSHEETS_URL + '/rows/' + str(submission_data['_id']),
+                headers={'x-apikey':SPREADSHEETS_API_KEY},
+                json=google_settings
+            )
+            response.raise_for_status()
+    except Exception as err: # pylint: disable=broad-except
+        print("Encountered error in log_status:{0}".format(err))
+        raise err

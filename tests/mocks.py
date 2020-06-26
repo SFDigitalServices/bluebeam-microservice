@@ -182,6 +182,15 @@ SUBMISSION_POST_DATA = {
     }]
 }
 
+LOGGER_PARAMETERS = {
+    "google_sheets": {
+        "spreadsheet_key": "spreadsheet-key",
+        "worksheet_title": "tab-name",
+        "id_column_label": "A",
+        "status_column_label": "B"
+    }
+}
+
 RESUBMISSION_POST_DATA = {
     "project_name": "1231 Stevenson",
     "project_id": "123-456-789",

@@ -11,7 +11,7 @@ import service.microservice
 import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
-    create_export, create_submission, is_url
+    create_export, create_submission, is_url, validate
 from service.resources.db import create_session, db_engine
 from tasks import celery_app as queue, bluebeam_export, ERR_UPLOAD_FAIL
 
@@ -44,6 +44,8 @@ def mock_env_access_key(monkeypatch):
     monkeypatch.setenv("CLOUDSTORAGE_URL", "https://cloud.storage.com")
     monkeypatch.setenv("CLOUDSTORAGE_API_KEY", "12345")
     monkeypatch.setenv("BUCKETEER_DOMAIN", "bucketeer.com")
+    monkeypatch.setenv("SPREADSHEETS_MICROSERVICE_URL", "https://spreadsheets.com")
+    monkeypatch.setenv("SPREADSHEETS_MICROSERVICE_API_KEY", "12345")
 
 @pytest.fixture
 def mock_env_no_access_key(monkeypatch):
@@ -142,6 +144,34 @@ def test_submission(mock_env_access_key, client):
     )
     assert response.status_code == 500
 
+def test_logger_validation():
+    """ test logger parameter rules """
+    data = mocks.SUBMISSION_POST_DATA.copy()
+    data['logger'] = mocks.LOGGER_PARAMETERS.copy()
+    data['_id'] = "123"
+
+    # happy path
+    result = validate(data)
+    assert result == data
+
+    # missing _id
+    with pytest.raises(Exception):
+        validate({i:data[i] for i in data if i != '_id'})
+
+    # missing logger parameters
+    params = [
+        'spreadsheet_key',
+        'worksheet_title',
+        'id_column_label',
+        'status_column_label'
+    ]
+    for param in params:
+        data['logger']['google_sheets'] = {
+            i:mocks.LOGGER_PARAMETERS['google_sheets'][i] for i in mocks.LOGGER_PARAMETERS['google_sheets'] if i != param # pylint: disable=line-too-long
+        }
+        with pytest.raises(Exception):
+            validate(data)
+
 def test_is_url():
     """ test is_url function """
     assert not is_url(1)
@@ -166,7 +196,10 @@ def test_export_task_new_project(mock_env_access_key):
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
-    create_submission(db, mocks.SUBMISSION_POST_DATA)
+    data = mocks.SUBMISSION_POST_DATA.copy()
+    data['logger'] = mocks.LOGGER_PARAMETERS.copy()
+    data['_id'] = "123"
+    create_submission(db, data)
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
@@ -200,12 +233,15 @@ def test_export_task_new_project(mock_env_access_key):
 
         mock_post.side_effect = fake_post_responses
 
-        bluebeam_export.s(
-            export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
-        ).apply()
+        with patch('tasks.requests.patch') as mock_patch:
+            mock_patch.status_code = 200
 
-        db.refresh(export_obj)
+            bluebeam_export.s(
+                export_obj=export_obj,
+                access_code=BLUEBEAM_ACCESS_CODE
+            ).apply()
+
+            db.refresh(export_obj)
 
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
@@ -390,7 +426,11 @@ def test_export_task_resubmission(mock_env_access_key):
     # don't include previous submission
     finish_submissions_exports()
     # create a resubmission so there's something to export
-    create_submission(db, mocks.RESUBMISSION_POST_DATA)
+    data = mocks.RESUBMISSION_POST_DATA.copy()
+    data['logger'] = mocks.LOGGER_PARAMETERS.copy()
+    data['_id'] = "123"
+    create_submission(db, data)
+
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected requests
@@ -420,12 +460,15 @@ def test_export_task_resubmission(mock_env_access_key):
 
         mock_reqs.side_effect = fake_responses
 
-        bluebeam_export.s(
-            export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
-        ).apply()
+        with patch('tasks.requests.patch') as mock_patch:
+            mock_patch.status_code = 200
 
-        db.refresh(export_obj)
+            bluebeam_export.s(
+                export_obj=export_obj,
+                access_code=BLUEBEAM_ACCESS_CODE
+            ).apply()
+
+            db.refresh(export_obj)
 
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
@@ -433,9 +476,67 @@ def test_export_task_resubmission(mock_env_access_key):
     # clear out the queue
     queue.control.purge()
 
+def test_export_task_resubmission_log_status_error(mock_env_access_key):
+    # pylint: disable=unused-argument
+    """Test the export resubmission task with an error when logging status"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a resubmission so there's something to export
+    data = mocks.RESUBMISSION_POST_DATA.copy()
+    data['logger'] = mocks.LOGGER_PARAMETERS.copy()
+    data['_id'] = "123"
+    create_submission(db, data)
+
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_reqs:
+        fake_responses = []
+        # project exists
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 200
+        # get folders
+        fake_responses.append(Mock())
+        fake_responses[1].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # get folders
+        fake_responses.append(Mock())
+        fake_responses[2].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_responses.append(Mock())
+        fake_responses[3].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        # initiate upload
+        fake_responses.append(Mock())
+        fake_responses[4].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_responses.append(Mock())
+        fake_responses[5].return_value.status_code = 200
+        # confirm upload
+        fake_responses.append(Mock())
+        fake_responses[6].status_code = 204
+
+        mock_reqs.side_effect = fake_responses
+
+        with patch('tasks.requests.patch') as mock_patch:
+            mock_patch.side_effect = Exception("Patch error")
+
+            bluebeam_export.s(
+                export_obj=export_obj,
+                access_code=BLUEBEAM_ACCESS_CODE
+            ).apply()
+
+            db.refresh(export_obj)
+
+        assert len(export_obj.result['failure']) > 0
+
+    # clear out the queue
+    queue.control.purge()
+
 def test_export_task_resubmission_no_upload_dir(mock_env_access_key):
     # pylint: disable=unused-argument
-    """Test the export resubmission task"""
+    """
+        Test the export resubmission task when cannot find upload dir
+        in preexisting bluebeam project
+    """
     # don't include previous submission
     finish_submissions_exports()
     # create a resubmission so there's something to export
@@ -470,7 +571,7 @@ def test_export_task_resubmission_no_upload_dir(mock_env_access_key):
 
 def test_export_task_resubmission_no_project(mock_env_access_key):
     # pylint: disable=unused-argument
-    """Test the export resubmission task"""
+    """Test the export resubmission task but project isn't found in bluebeam"""
     # don't include previous submission
     finish_submissions_exports()
     # create a resubmission so there's something to export
@@ -502,11 +603,14 @@ def test_export_task_resubmission_no_project(mock_env_access_key):
 
 def test_export_task_file_upload_error(mock_env_access_key):
     # pylint: disable=unused-argument
-    """Test the export task"""
+    """Test the export task when there is an error in uploading to bluebeam"""
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
-    create_submission(db, mocks.SUBMISSION_POST_DATA)
+    data = mocks.SUBMISSION_POST_DATA.copy()
+    data['logger'] = mocks.LOGGER_PARAMETERS.copy()
+    data['_id'] = "123"
+    create_submission(db, data)
     # create the export
     export_obj = create_export(db, BLUEBEAM_USERNAME)
     # mock all responses for expected outbound requests
@@ -543,10 +647,13 @@ def test_export_task_file_upload_error(mock_env_access_key):
 
         mock_post.side_effect = fake_post_responses
 
-        bluebeam_export.s(
-            export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
-        ).apply()
+        with patch('tasks.requests.patch') as mock_patch:
+            mock_patch.status_code = 200
+
+            bluebeam_export.s(
+                export_obj=export_obj,
+                access_code=BLUEBEAM_ACCESS_CODE
+            ).apply()
 
         db.refresh(export_obj)
         assert export_obj.date_finished is not None
@@ -558,7 +665,7 @@ def test_export_task_file_upload_error(mock_env_access_key):
 
 def test_export_task_no_upload_folder(mock_env_access_key):
     # pylint: disable=unused-argument
-    """Test the export task"""
+    """Test the export task when there is no dir set as the uploads dir"""
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
