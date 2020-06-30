@@ -137,7 +137,7 @@ def bluebeam_export(self, export_obj, access_code):
             # log error to google sheets
             try:
                 if 'logger' in submission.data:
-                    log_status(err_msg, submission.data)
+                    log_status('Error: ' + err_msg, submission.data)
             except Exception as err: # pylint: disable=broad-except
                 pass
 
