@@ -6,6 +6,9 @@ from io import BytesIO
 from datetime import datetime
 import urllib.request
 from urllib.parse import urlparse
+import tempfile
+import zipfile
+import shutil
 import requests
 import celery
 from kombu import serialization
@@ -176,19 +179,29 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 }
             )
             print("upload_files cloud path:{0}".format(file_url_parsed.path[1:]))
-            file_download = BytesIO(response.content)
+            file_download = BytesIO(response.content).getbuffer()
         else:
             response = urllib.request.urlopen(file_url)
             file_download = response.read()
         file_name = f['originalName']
 
-        is_upload_successful = bluebeam.upload_file(
-            access_code,
-            project_id,
-            file_name,
-            file_download,
-            upload_dir_id
-        )
+        # handle zips
+        if file_name.endswith('.zip'):
+            is_upload_successful = upload_zip(
+                access_code,
+                project_id,
+                file_download,
+                upload_dir_id
+            )
+        else:
+            is_upload_successful = bluebeam.upload_file(
+                access_code,
+                project_id,
+                file_name,
+                file_download,
+                upload_dir_id
+            )
+
         if not is_upload_successful:
             print(ERR_UPLOAD_FAIL)
             raise Exception(ERR_UPLOAD_FAIL)
@@ -215,3 +228,38 @@ def log_status(status, submission_data):
         print("Encountered error in log_status:{0}".format(err))
         print("log data:{0}".format(google_settings))
         raise err
+
+def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
+    """
+        unzips file and uploads pdfs to bluebeam
+    """
+    tmp_dir = tempfile.mkdtemp()
+
+    # write out zip file
+    zip_file_path = os.path.join(tmp_dir, "file.zip")
+    with open(zip_file_path, "wb") as f:# pylint: disable=invalid-name
+        f.write(zip_file_content)
+
+    # extract zip file
+    with zipfile.ZipFile(zip_file_path, "r") as zip_file:
+        zip_file.extractall(tmp_dir)
+
+    # upload only pdfs
+    is_upload_successful = False
+    files = os.listdir(tmp_dir)
+    for f in files: # pylint: disable=invalid-name
+        if f.endswith(".pdf"):
+            with open(os.path.join(tmp_dir, f), "rb") as doc:
+                is_upload_successful = bluebeam.upload_file(
+                    access_code,
+                    project_id,
+                    f,
+                    doc.read(),
+                    upload_dir_id
+                )
+                # failed upload
+                if not is_upload_successful:
+                    break
+    # cleanup
+    shutil.rmtree(tmp_dir)
+    return is_upload_successful

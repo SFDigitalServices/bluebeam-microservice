@@ -182,6 +182,17 @@ SUBMISSION_POST_DATA = {
     }]
 }
 
+SUBMISSION_POST_DATA_ZIP = {
+    "project_name": "123 Zip St.",
+    "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny",
+    "files": [{
+        "url": "https://bucketeer.com/Archive.zip",
+        "originalName": "Archive.zip"
+    }]
+}
+
 LOGGER_PARAMETERS = {
     "google_sheets": {
         "spreadsheet_key": "spreadsheet-key",
