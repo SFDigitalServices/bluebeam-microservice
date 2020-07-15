@@ -3,7 +3,9 @@
 import os
 import json
 import uuid
+import datetime
 from unittest.mock import patch, Mock
+import copy
 import jsend
 import pytest
 from falcon import testing
@@ -22,6 +24,7 @@ CLIENT_HEADERS = {
 BLUEBEAM_USERNAME = "user@sfgov.org"
 BLUEBEAM_ACCESS_CODE = "secret_key"
 TEST_PDF = 'tests/resources/dummy.pdf'
+ZIP_FILE = 'tests/resources/Archive.zip'
 
 session = create_session() # pylint: disable=invalid-name
 db = session() # pylint: disable=invalid-name
@@ -416,6 +419,171 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
         assert len(export_obj.result['failure']) == 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_new_project_zip(mock_env_access_key):
+    # pylint: disable=unused-argument
+    """Test the export task where submission has a zip attachment"""
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a submission so there's something to export
+    create_submission(db, mocks.SUBMISSION_POST_DATA_ZIP)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = []
+        # create project
+        fake_post_responses.append(Mock())
+        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
+        # create folders
+        i = 1
+        while i < 7:
+            fake_post_responses.append(Mock())
+            fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+            i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        # initiate upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].return_value.status_code = 200
+        # confirm upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].status_code = 204
+        # get folders 2
+        # this mock is modified to contain today's upload folder
+        fake_post_responses.append(Mock())
+        get_folders_updated = copy.deepcopy(mocks.GET_FOLDERS_RESPONSE)
+        get_folders_updated['ProjectFolders'].append(
+            {
+                '$id': '8',
+                'Id': '1234567',
+                'Name': bluebeam.SUBMITTAL_DIR_NAME + " " + str(datetime.date.today()),
+                'Path': '/path/somewhere'
+            }
+        )
+        fake_post_responses[12].json.return_value = get_folders_updated
+        # initiate upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[14].return_value.status_code = 200
+        # confirm upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[15].status_code = 204
+        mock_post.side_effect = fake_post_responses
+
+        with patch('tasks.requests.get') as mock_get:
+            with open(ZIP_FILE, 'rb') as f: # pylint: disable=invalid-name
+                mock_get.return_value.content = f.read()
+
+                bluebeam_export.s(
+                    export_obj=export_obj,
+                    access_code=BLUEBEAM_ACCESS_CODE
+                ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) > 0
+        assert len(export_obj.result['failure']) == 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_new_project_zip_upload_err(mock_env_access_key):
+    # pylint: disable=unused-argument
+    """
+        Test the export task where submission has a zip attachment
+        One of the uploads in zip fails.
+    """
+    # don't include previous submission
+    finish_submissions_exports()
+    # create a submission so there's something to export
+    create_submission(db, mocks.SUBMISSION_POST_DATA_ZIP)
+    # create the export
+    export_obj = create_export(db, BLUEBEAM_USERNAME)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = []
+        # create project
+        fake_post_responses.append(Mock())
+        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
+        # create folders
+        i = 1
+        while i < 7:
+            fake_post_responses.append(Mock())
+            fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+            i += 1
+        # get folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        # create folders
+        fake_post_responses.append(Mock())
+        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        # initiate upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[10].return_value.status_code = 200
+        # confirm upload
+        fake_post_responses.append(Mock())
+        fake_post_responses[11].status_code = 204
+        # get folders 2
+        # this mock is modified to contain today's upload folder
+        fake_post_responses.append(Mock())
+        get_folders_updated = copy.deepcopy(mocks.GET_FOLDERS_RESPONSE)
+        get_folders_updated['ProjectFolders'].append(
+            {
+                '$id': '8',
+                'Id': '1234567',
+                'Name': bluebeam.SUBMITTAL_DIR_NAME + " " + str(datetime.date.today()),
+                'Path': '/path/somewhere'
+            }
+        )
+        fake_post_responses[12].json.return_value = get_folders_updated
+        # initiate upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        # upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[14] = Exception("Generic Error")
+        # confirm upload 2
+        fake_post_responses.append(Mock())
+        fake_post_responses[15].status_code = 204
+        # delete project
+        fake_post_responses.append(Mock())
+        fake_post_responses[16].status_code = 204
+
+        mock_post.side_effect = fake_post_responses
+
+        with patch('tasks.requests.get') as mock_get:
+            with open(ZIP_FILE, 'rb') as f: # pylint: disable=invalid-name
+                mock_get.return_value.content = f.read()
+
+                bluebeam_export.s(
+                    export_obj=export_obj,
+                    access_code=BLUEBEAM_ACCESS_CODE
+                ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) == 0
+        assert len(export_obj.result['failure']) > 0
 
     # clear out the queue
     queue.control.purge()
