@@ -213,39 +213,34 @@ def upload_file(access_token, project_id, file_name, file_content, folder_id):
     """
         uploads a file to bluebeam for given project_id and folder_id
     """
-    try:
-        print("bluebeam.upload_file:{0}".format(file_name))
+    print("bluebeam.upload_file:{0}".format(file_name))
 
-        upload_dir_of_the_day = SUBMITTAL_DIR_NAME + " " + str(datetime.date.today())
-        upload_dir_of_the_day_id = dir_exists(upload_dir_of_the_day, project_id, access_token)
-        if not upload_dir_of_the_day_id:
-            upload_dir_of_the_day_id = create_folder(
-                access_token,
-                project_id,
-                upload_dir_of_the_day,
-                parent_folder_id=folder_id
-            )
-
-        # find out where to upload file
-        response_json = initiate_upload(
+    upload_dir_of_the_day = SUBMITTAL_DIR_NAME + " " + str(datetime.date.today())
+    upload_dir_of_the_day_id = dir_exists(upload_dir_of_the_day, project_id, access_token)
+    if not upload_dir_of_the_day_id:
+        upload_dir_of_the_day_id = create_folder(
             access_token,
             project_id,
-            file_name,
-            upload_dir_of_the_day_id
+            upload_dir_of_the_day,
+            parent_folder_id=folder_id
         )
-        upload_url = response_json['UploadUrl']
-        file_id = response_json['Id']
-        upload_content_type = response_json['UploadContentType']
 
-        # upload file
-        upload(upload_url, file_content, upload_content_type)
+    # find out where to upload file
+    response_json = initiate_upload(
+        access_token,
+        project_id,
+        file_name,
+        upload_dir_of_the_day_id
+    )
+    upload_url = response_json['UploadUrl']
+    file_id = response_json['Id']
+    upload_content_type = response_json['UploadContentType']
 
-        # confirm upload
-        return confirm_upload(access_token, project_id, file_id)
+    # upload file
+    upload(upload_url, file_content, upload_content_type)
 
-    except Exception as err: # pylint: disable=broad-except
-        print("Caught exception in bluebeam.upload_file: {0}".format(err))
-        return False
+    # confirm upload
+    return confirm_upload(access_token, project_id, file_id)
 
 @timer
 def initiate_upload(acccess_code, project_id, file_name, folder_id):

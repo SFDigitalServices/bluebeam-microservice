@@ -15,7 +15,7 @@ import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
     create_export, create_submission, is_url, validate
 from service.resources.db import create_session, db_engine
-from tasks import celery_app as queue, bluebeam_export, ERR_UPLOAD_FAIL
+from tasks import celery_app as queue, bluebeam_export
 
 CLIENT_HEADERS = {
     "ACCESS_KEY": "1234567"
@@ -826,7 +826,6 @@ def test_export_task_file_upload_error(mock_env_access_key):
         db.refresh(export_obj)
         assert export_obj.date_finished is not None
         assert len(export_obj.result['failure']) > 0
-        assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
@@ -872,7 +871,6 @@ def test_export_task_no_upload_folder(mock_env_access_key):
             db.refresh(export_obj)
             assert export_obj.date_finished is not None
             assert len(export_obj.result['failure']) > 0
-            assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
