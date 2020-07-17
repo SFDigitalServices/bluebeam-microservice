@@ -15,7 +15,7 @@ import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
     create_export, create_submission, is_url, validate
 from service.resources.db import create_session, db_engine
-from tasks import celery_app as queue, bluebeam_export, ERR_UPLOAD_FAIL
+from tasks import celery_app as queue, bluebeam_export
 
 CLIENT_HEADERS = {
     "ACCESS_KEY": "1234567"
