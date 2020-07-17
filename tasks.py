@@ -31,7 +31,6 @@ SPREADSHEETS_API_KEY = os.environ.get('SPREADSHEETS_MICROSERVICE_API_KEY')
 
 ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
-STATUS_FILES_UPLOADED = "Files uploaded"
 
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
 def bluebeam_export(self, export_obj, access_code):
@@ -109,14 +108,7 @@ def bluebeam_export(self, export_obj, access_code):
 
             # log success to google sheets
             if 'logger' in submission.data:
-                status = project_id
-                # distinguish between creating a new bluebeam project
-                # vs uploading files to existing project
-                if ('project_id' in submission.data and
-                        'files' in submission.data and
-                        len(submission.data['files']) > 0):
-                    status = STATUS_FILES_UPLOADED
-                log_status(status, submission.data)
+                log_status(project_id, submission.data)
 
             # finished exporting this submission
             statuses['success'].append({
@@ -187,24 +179,20 @@ def upload_files(project_id, upload_dir_id, files, access_code):
 
         # handle zips
         if file_name.endswith('.zip'):
-            is_upload_successful = upload_zip(
+            upload_zip(
                 access_code,
                 project_id,
                 file_download,
                 upload_dir_id
             )
         else:
-            is_upload_successful = bluebeam.upload_file(
+            bluebeam.upload_file(
                 access_code,
                 project_id,
                 file_name,
                 file_download,
                 upload_dir_id
             )
-
-        if not is_upload_successful:
-            print(ERR_UPLOAD_FAIL)
-            raise Exception(ERR_UPLOAD_FAIL)
 
 def log_status(status, submission_data):
     """
@@ -250,16 +238,13 @@ def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
     for f in files: # pylint: disable=invalid-name
         if f.endswith(".pdf"):
             with open(os.path.join(tmp_dir, f), "rb") as doc:
-                is_upload_successful = bluebeam.upload_file(
+                bluebeam.upload_file(
                     access_code,
                     project_id,
                     f,
                     doc.read(),
                     upload_dir_id
                 )
-                # failed upload
-                if not is_upload_successful:
-                    break
     # cleanup
     shutil.rmtree(tmp_dir)
     return is_upload_successful

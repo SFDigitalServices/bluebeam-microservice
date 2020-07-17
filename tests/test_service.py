@@ -826,7 +826,6 @@ def test_export_task_file_upload_error(mock_env_access_key):
         db.refresh(export_obj)
         assert export_obj.date_finished is not None
         assert len(export_obj.result['failure']) > 0
-        assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
@@ -872,7 +871,6 @@ def test_export_task_no_upload_folder(mock_env_access_key):
             db.refresh(export_obj)
             assert export_obj.date_finished is not None
             assert len(export_obj.result['failure']) > 0
-            assert export_obj.result['failure'][-1]['err'] == ERR_UPLOAD_FAIL
 
     # clear out the queue
     queue.control.purge()
