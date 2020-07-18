@@ -1,4 +1,5 @@
 # pylint: disable=redefined-outer-name
+# pylint: disable=too-many-lines
 """Tests for microservice"""
 import os
 import json
@@ -174,6 +175,15 @@ def test_logger_validation():
         }
         with pytest.raises(Exception):
             validate(data)
+
+def test_invalid_file_name():
+    """ test uploading a file with an invalid filename """
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        mock_post.return_value.json.return_value = mocks.INIT_FILE_UPLOAD_INVALID_NAME_RESPONSE
+        mock_post.return_value.status_code = 200
+
+        with pytest.raises(Exception):
+            bluebeam.initiate_upload('access_code', '123', '"<>|:*?\\/', '123')
 
 def test_is_url():
     """ test is_url function """

@@ -259,6 +259,10 @@ def initiate_upload(acccess_code, project_id, file_name, folder_id):
             "ParentFolderId": folder_id
         }
     )
+    response_json = response.json()
+    if response_json.get("ErrorCode") == 99996:
+        raise Exception("Invalid filename:{0}".format(file_name))
+
     return response.json()
 
 @timer
@@ -334,4 +338,5 @@ def bluebeam_request(method, url, data=None, json=None, headers=None):
     print("end timestamp: {0}".format(datetime.datetime.now()))
     print("response header: {0}".format(response.headers))
     print("response body: {0}".format(response.text))
+    response.raise_for_status()
     return response
