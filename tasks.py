@@ -4,7 +4,6 @@
 import os
 from io import BytesIO
 from datetime import datetime
-import urllib.request
 from urllib.parse import urlparse
 import tempfile
 import zipfile
@@ -136,6 +135,9 @@ def bluebeam_export(self, export_obj, access_code):
             except Exception as err: # pylint: disable=broad-except
                 pass
 
+        # commit update this submission immediately
+        db_session.commit()
+
     # finished export
     export_status = db_session.query(ExportStatusModel).filter(
         ExportStatusModel.guid == export_obj.guid
@@ -150,6 +152,7 @@ def upload_files(project_id, upload_dir_id, files, access_code):
     """
         upload all the files to the upload dir of a project
     """
+    print("tasks.upload_files:{0}".format(files))
     cloudstorage_url = os.environ.get('CLOUDSTORAGE_URL')
     cloudstorage_api_key = os.environ.get('CLOUDSTORAGE_API_KEY')
     bucketeer_domain = os.environ.get('BUCKETEER_DOMAIN')
@@ -158,10 +161,12 @@ def upload_files(project_id, upload_dir_id, files, access_code):
         files = []
 
     for f in files: #pylint: disable=invalid-name
+        print("tasks.upload_files file: {0}".format(f))
         file_url = f['url']
         file_url_parsed = urlparse(file_url)
 
         # use cloudstorage api to retrieve file
+        response = None
         if file_url_parsed.netloc == bucketeer_domain:
             response = requests.get(
                 cloudstorage_url,
@@ -171,10 +176,10 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 }
             )
             print("upload_files cloud path:{0}".format(file_url_parsed.path[1:]))
-            file_download = BytesIO(response.content).getbuffer()
         else:
-            response = urllib.request.urlopen(file_url)
-            file_download = response.read()
+            response = requests.get(file_url)
+        response.raise_for_status()
+        file_download = BytesIO(response.content).getbuffer()
         file_name = f['originalName']
 
         # handle zips
@@ -233,7 +238,6 @@ def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
         zip_file.extractall(tmp_dir)
 
     # upload only pdfs
-    is_upload_successful = False
     files = os.listdir(tmp_dir)
     for f in files: # pylint: disable=invalid-name
         if f.endswith(".pdf"):
@@ -247,4 +251,3 @@ def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
                 )
     # cleanup
     shutil.rmtree(tmp_dir)
-    return is_upload_successful

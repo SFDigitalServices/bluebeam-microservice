@@ -171,6 +171,10 @@ INIT_FILE_UPLOAD_RESPONSE = {
     "UploadContentType": "application/pdf"
 }
 
+INIT_FILE_UPLOAD_INVALID_NAME_RESPONSE = {
+    "ErrorCode":99996
+}
+
 SUBMISSION_POST_DATA = {
     "project_name": "123 Market St.",
     "email": "test@test.com",
