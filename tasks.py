@@ -175,40 +175,40 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 params={
                     'name':file_url_parsed.path[1:],
                     'apikey':cloudstorage_api_key
-                }
+                },
+                stream=True
             )
             print("upload_files cloud path:{0}".format(file_url_parsed.path[1:]))
         else:
-            response = requests.get(file_url)
+            response = requests.get(file_url, stream=True)
         response.raise_for_status()
         file_name = f['originalName']
 
         # write downloaded file locally
-        downloaded_file = tempfile.TemporaryFile()
-        downloaded_file.write(BytesIO(response.content).getbuffer())
+        tmp_dir = tempfile.mkdtemp()
+        downloaded_file = open(os.path.join(tmp_dir, 'downloaded_file'), 'wb+')
+        shutil.copyfileobj(BytesIO(response.content), downloaded_file)
         del response
-        downloaded_file.seek(0)
 
         # handle zips
-        try:
-            if file_name.endswith('.zip'):
-                upload_zip(
-                    access_code,
-                    project_id,
-                    downloaded_file,
-                    upload_dir_id
-                )
-            else:
-                bluebeam.upload_file(
-                    access_code,
-                    project_id,
-                    file_name,
-                    downloaded_file,
-                    upload_dir_id
-                )
-        finally:
-            # delete
-            downloaded_file.close()
+        if file_name.endswith('.zip'):
+            upload_zip(
+                access_code,
+                project_id,
+                downloaded_file,
+                upload_dir_id
+            )
+        else:
+            bluebeam.upload_file(
+                access_code,
+                project_id,
+                file_name,
+                downloaded_file,
+                upload_dir_id
+            )
+
+        # cleanup
+        shutil.rmtree(tmp_dir)
 
 def log_status(status, submission_data):
     """
