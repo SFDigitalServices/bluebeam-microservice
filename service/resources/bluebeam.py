@@ -274,7 +274,7 @@ def upload(upload_url, file_obj, content_type):
     bluebeam_request(
         'put',
         upload_url,
-        data=file_obj.read(),
+        data=file_obj,
         headers={
             'Content-type': content_type,
             'x-amz-server-side-encryption': 'AES256'
