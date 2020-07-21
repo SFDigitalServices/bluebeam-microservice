@@ -104,9 +104,9 @@ def create_project(access_token, project_name):
     """
     response = bluebeam_request(
         'post',
-        BLUEBEAM_API_BASE_URL + "/projects",
+        "{0}/projects".format(BLUEBEAM_API_BASE_URL),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         },
         json={
             "Name": project_name,
@@ -130,9 +130,9 @@ def delete_project(access_token, project_id):
     """
     bluebeam_request(
         'delete',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id),
+        '{0}/projects/{1}'.format(BLUEBEAM_API_BASE_URL, project_id),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         }
     )
 
@@ -143,9 +143,9 @@ def project_exists(access_token, project_id):
     """
     response = bluebeam_request(
         'get',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id),
+        '{0}/projects/{1}'.format(BLUEBEAM_API_BASE_URL, project_id),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         }
     )
     return response.status_code == 200
@@ -158,9 +158,9 @@ def create_folder(access_token, project_id, folder_name, comment='', parent_fold
     print("bluebeam.create_folder:{0}".format(folder_name))
     response = bluebeam_request(
         'post',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/folders",
+        '{0}/projects/{1}/folders'.format(BLUEBEAM_API_BASE_URL, project_id),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         },
         json={
             "Name": folder_name,
@@ -179,9 +179,9 @@ def get_folders(access_token, project_id):
     print("bluebeam.get_folders")
     response = bluebeam_request(
         'get',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/folders",
+        '{0}/projects/{1}/folders'.format(BLUEBEAM_API_BASE_URL, project_id),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         }
     )
     response_json = response.json()
@@ -209,13 +209,13 @@ def dir_exists(name, project_id, access_token, dirs_array=None):
             return folder['Id']
     return False
 
-def upload_file(access_token, project_id, file_name, file_content, folder_id):
+def upload_file(access_token, project_id, file_name, file_obj, folder_id):
     """
         uploads a file to bluebeam for given project_id and folder_id
     """
     print("bluebeam.upload_file:{0}".format(file_name))
 
-    upload_dir_of_the_day = SUBMITTAL_DIR_NAME + " " + str(datetime.date.today())
+    upload_dir_of_the_day = "{0} {1}".format(SUBMITTAL_DIR_NAME, datetime.date.today())
     upload_dir_of_the_day_id = dir_exists(upload_dir_of_the_day, project_id, access_token)
     if not upload_dir_of_the_day_id:
         upload_dir_of_the_day_id = create_folder(
@@ -237,22 +237,22 @@ def upload_file(access_token, project_id, file_name, file_content, folder_id):
     upload_content_type = response_json['UploadContentType']
 
     # upload file
-    upload(upload_url, file_content, upload_content_type)
+    upload(upload_url, file_obj, upload_content_type)
 
     # confirm upload
     return confirm_upload(access_token, project_id, file_id)
 
 @timer
-def initiate_upload(acccess_code, project_id, file_name, folder_id):
+def initiate_upload(access_token, project_id, file_name, folder_id):
     """
         initate file upload with bluebeam
     """
     print("bluebeam.initiate_upload")
     response = bluebeam_request(
         'post',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) + "/files",
+        '{0}/projects/{1}/files'.format(BLUEBEAM_API_BASE_URL, project_id),
         headers={
-            'Authorization': 'Bearer ' + acccess_code
+            'Authorization': 'Bearer {0}'.format(access_token)
         },
         json={
             "Name": file_name,
@@ -266,7 +266,7 @@ def initiate_upload(acccess_code, project_id, file_name, folder_id):
     return response.json()
 
 @timer
-def upload(upload_url, file_contents, content_type):
+def upload(upload_url, file_obj, content_type):
     """
         uploads file
     """
@@ -274,7 +274,7 @@ def upload(upload_url, file_contents, content_type):
     bluebeam_request(
         'put',
         upload_url,
-        data=file_contents,
+        data=file_obj,
         headers={
             'Content-type': content_type,
             'x-amz-server-side-encryption': 'AES256'
@@ -289,10 +289,12 @@ def confirm_upload(access_token, project_id, file_id):
     print("bluebeam.confirm_upload")
     response = bluebeam_request(
         'post',
-        BLUEBEAM_API_BASE_URL + "/projects/" + str(project_id) +
-        "/files/" + str(file_id) + "/confirm-upload",
+        '{0}/projects/{1}/files/{2}/confirm-upload'.format(
+            BLUEBEAM_API_BASE_URL,
+            project_id,
+            file_id),
         headers={
-            'Authorization': 'Bearer ' + access_token
+            'Authorization': 'Bearer {0}'.format(access_token)
         }
     )
     return response.status_code == 204

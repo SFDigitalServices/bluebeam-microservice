@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import tempfile
 import zipfile
 import shutil
+import traceback
 import requests
 import celery
 from kombu import serialization
@@ -121,6 +122,7 @@ def bluebeam_export(self, export_obj, access_code):
             err_msg = "{0}".format(err)
             print('Encountered error exporting submission with id: {0}'.format(submission.id))
             print(err_msg)
+            print(traceback.format_exc())
             submission.error_message = err_msg
             statuses['failure'].append({
                 'id': submission.id,
@@ -131,7 +133,7 @@ def bluebeam_export(self, export_obj, access_code):
             # log error to google sheets
             try:
                 if 'logger' in submission.data:
-                    log_status('Error: ' + err_msg, submission.data)
+                    log_status('Error: {}'.format(err_msg), submission.data)
             except Exception as err: # pylint: disable=broad-except
                 pass
 
@@ -173,21 +175,27 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 params={
                     'name':file_url_parsed.path[1:],
                     'apikey':cloudstorage_api_key
-                }
+                },
+                stream=True
             )
             print("upload_files cloud path:{0}".format(file_url_parsed.path[1:]))
         else:
-            response = requests.get(file_url)
+            response = requests.get(file_url, stream=True)
         response.raise_for_status()
-        file_download = BytesIO(response.content).getbuffer()
         file_name = f['originalName']
+
+        # write downloaded file locally
+        tmp_dir = tempfile.mkdtemp()
+        downloaded_file = open(os.path.join(tmp_dir, 'downloaded_file'), 'wb+')
+        shutil.copyfileobj(BytesIO(response.content), downloaded_file)
+        del response
 
         # handle zips
         if file_name.endswith('.zip'):
             upload_zip(
                 access_code,
                 project_id,
-                file_download,
+                downloaded_file,
                 upload_dir_id
             )
         else:
@@ -195,9 +203,12 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 access_code,
                 project_id,
                 file_name,
-                file_download,
+                downloaded_file,
                 upload_dir_id
             )
+
+        # cleanup
+        shutil.rmtree(tmp_dir)
 
 def log_status(status, submission_data):
     """
@@ -212,7 +223,7 @@ def log_status(status, submission_data):
                 google_settings['status_column_label']:status
             }
             response = requests.patch(
-                SPREADSHEETS_URL + '/rows/' + str(submission_data['_id']),
+                '{0}/rows/{1}'.format(SPREADSHEETS_URL, submission_data['_id']),
                 headers={'x-apikey':SPREADSHEETS_API_KEY},
                 json=google_settings
             )
@@ -222,19 +233,14 @@ def log_status(status, submission_data):
         print("log data:{0}".format(google_settings))
         raise err
 
-def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
+def upload_zip(access_code, project_id, file_obj, upload_dir_id):
     """
         unzips file and uploads pdfs to bluebeam
     """
     tmp_dir = tempfile.mkdtemp()
 
-    # write out zip file
-    zip_file_path = os.path.join(tmp_dir, "file.zip")
-    with open(zip_file_path, "wb") as f:# pylint: disable=invalid-name
-        f.write(zip_file_content)
-
     # extract zip file
-    with zipfile.ZipFile(zip_file_path, "r") as zip_file:
+    with zipfile.ZipFile(file_obj, "r") as zip_file:
         zip_file.extractall(tmp_dir)
 
     # upload only pdfs
@@ -246,7 +252,7 @@ def upload_zip(access_code, project_id, zip_file_content, upload_dir_id):
                     access_code,
                     project_id,
                     f,
-                    doc.read(),
+                    doc,
                     upload_dir_id
                 )
     # cleanup
