@@ -11,6 +11,13 @@ from sqlalchemy.dialects.postgresql import UUID
 
 BASE = declarative_base()
 
+REQUIRED_LOGGER_PARAMS = [
+        'spreadsheet_key',
+        'worksheet_title',
+        'id_column_label',
+        'status_column_label'
+    ]
+
 class SubmissionModel(BASE):
     # pylint: disable=too-few-public-methods
     """Map Submission object to db"""
@@ -73,13 +80,8 @@ def validate(json_params):
             raise Exception("_id is required for logging")
         if 'google_sheets' in json_params['logger']:
             missing_msg = "Missing {0} setting in google sheets logger"
-            required_params = [
-                'spreadsheet_key',
-                'worksheet_title',
-                'id_column_label',
-                'status_column_label'
-            ]
-            for param in required_params:
+
+            for param in REQUIRED_LOGGER_PARAMS:
                 if param not in json_params['logger']['google_sheets']:
                     raise Exception(missing_msg.format(param))
 

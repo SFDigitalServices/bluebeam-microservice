@@ -16,7 +16,7 @@ import service.microservice
 import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
-    create_export, create_submission, is_url, validate, UserModel
+    create_export, create_submission, is_url, validate, UserModel, REQUIRED_LOGGER_PARAMS
 from service.resources.db import create_session, db_engine
 from tasks import celery_app as queue, bluebeam_export
 
@@ -173,13 +173,7 @@ def test_logger_validation():
         validate({i:data[i] for i in data if i != '_id'})
 
     # missing logger parameters
-    params = [
-        'spreadsheet_key',
-        'worksheet_title',
-        'id_column_label',
-        'status_column_label'
-    ]
-    for param in params:
+    for param in REQUIRED_LOGGER_PARAMS:
         data['logger']['google_sheets'] = {
             i:mocks.LOGGER_PARAMETERS['google_sheets'][i] for i in mocks.LOGGER_PARAMETERS['google_sheets'] if i != param # pylint: disable=line-too-long
         }
