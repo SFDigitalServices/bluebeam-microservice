@@ -1,5 +1,6 @@
 # pylint: disable=redefined-outer-name
 # pylint: disable=too-many-lines
+# pylint: disable=too-many-statements
 """Tests for microservice"""
 import os
 import json
