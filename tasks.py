@@ -14,7 +14,7 @@ import celery
 from kombu import serialization
 import celeryconfig
 import service.resources.bluebeam as bluebeam
-from service.resources.models import SubmissionModel, ExportStatusModel
+from service.resources.models import SubmissionModel, ExportStatusModel, UserModel
 from service.resources.db import create_session
 
 TEMP_DIR = 'tmp'
@@ -100,6 +100,10 @@ def bluebeam_export(self, export_obj, access_code):
                         submission.data.get('files'),
                         access_code
                     )
+
+                    # assign user permissions
+                    users = db_session.query(UserModel).all()
+                    bluebeam.assign_user_permissions(access_code, project_id, users)
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
                     if project_id is not None:
@@ -186,16 +190,18 @@ def upload_files(project_id, upload_dir_id, files, access_code):
 
         # write downloaded file locally
         tmp_dir = tempfile.mkdtemp()
-        downloaded_file = open(os.path.join(tmp_dir, 'downloaded_file'), 'wb+')
+        file_path = os.path.join(tmp_dir, file_name)
+        downloaded_file = open(file_path, 'wb')
         shutil.copyfileobj(BytesIO(response.content), downloaded_file)
         del response
+        downloaded_file.close()
 
         # handle zips
         if file_name.endswith('.zip'):
             upload_zip(
                 access_code,
                 project_id,
-                downloaded_file,
+                file_path,
                 upload_dir_id
             )
         else:
@@ -203,7 +209,7 @@ def upload_files(project_id, upload_dir_id, files, access_code):
                 access_code,
                 project_id,
                 file_name,
-                downloaded_file,
+                file_path,
                 upload_dir_id
             )
 
@@ -233,27 +239,26 @@ def log_status(status, submission_data):
         print("log data:{0}".format(google_settings))
         raise err
 
-def upload_zip(access_code, project_id, file_obj, upload_dir_id):
+def upload_zip(access_code, project_id, file_path, upload_dir_id):
     """
         unzips file and uploads pdfs to bluebeam
     """
     tmp_dir = tempfile.mkdtemp()
 
     # extract zip file
-    with zipfile.ZipFile(file_obj, "r") as zip_file:
+    with zipfile.ZipFile(file_path, "r") as zip_file:
         zip_file.extractall(tmp_dir)
 
     # upload only pdfs
     files = os.listdir(tmp_dir)
     for f in files: # pylint: disable=invalid-name
         if f.endswith(".pdf"):
-            with open(os.path.join(tmp_dir, f), "rb") as doc:
-                bluebeam.upload_file(
-                    access_code,
-                    project_id,
-                    f,
-                    doc,
-                    upload_dir_id
-                )
+            bluebeam.upload_file(
+                access_code,
+                project_id,
+                f,
+                os.path.join(tmp_dir, f),
+                upload_dir_id
+            )
     # cleanup
     shutil.rmtree(tmp_dir)

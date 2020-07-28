@@ -9,12 +9,13 @@ from unittest.mock import patch, Mock
 import copy
 import jsend
 import pytest
+import requests
 from falcon import testing
 import service.microservice
 import service.resources.bluebeam as bluebeam
 import tests.mocks as mocks
 from service.resources.models import SubmissionModel, ExportStatusModel,\
-    create_export, create_submission, is_url, validate
+    create_export, create_submission, is_url, validate, UserModel
 from service.resources.db import create_session, db_engine
 from tasks import celery_app as queue, bluebeam_export
 
@@ -29,6 +30,14 @@ ZIP_FILE = 'tests/resources/Archive.zip'
 
 session = create_session() # pylint: disable=invalid-name
 db = session() # pylint: disable=invalid-name
+
+# create users
+db.query(UserModel).delete()
+user1 = UserModel(email='user1@test.com') #pylint: disable=invalid-name
+user2 = UserModel(email='user2@test.com') #pylint: disable=invalid-name
+db.add(user1)
+db.add(user2)
+db.commit()
 
 @pytest.fixture()
 def client():
@@ -243,6 +252,21 @@ def test_export_task_new_project(mock_env_access_key):
         # confirm upload
         fake_post_responses.append(Mock())
         fake_post_responses[11].status_code = 204
+        # add user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # add user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
+        # get project users
+        fake_post_responses.append(Mock())
+        fake_post_responses[14].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # set access user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -254,7 +278,7 @@ def test_export_task_new_project(mock_env_access_key):
                 access_code=BLUEBEAM_ACCESS_CODE
             ).apply()
 
-            db.refresh(export_obj)
+        db.refresh(export_obj)
 
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
@@ -302,6 +326,21 @@ def test_export_task_new_project_no_files(mock_env_access_key):
         # confirm upload
         fake_post_responses.append(Mock())
         fake_post_responses[11].status_code = 204
+        # add user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # add user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
+        # get project users
+        fake_post_responses.append(Mock())
+        fake_post_responses[14].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # set access user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -356,6 +395,21 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
         # confirm upload
         fake_post_responses.append(Mock())
         fake_post_responses[11].status_code = 204
+        # add user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # add user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
+        # get project users
+        fake_post_responses.append(Mock())
+        fake_post_responses[14].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # set access user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -416,6 +470,21 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
         # confirm upload
         fake_post_responses.append(Mock())
         fake_post_responses[11].status_code = 204
+        # add user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # add user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
+        # get project users
+        fake_post_responses.append(Mock())
+        fake_post_responses[14].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[12].status_code = 204
+        # set access user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[13].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
@@ -492,6 +561,22 @@ def test_export_task_new_project_zip(mock_env_access_key):
         # confirm upload 2
         fake_post_responses.append(Mock())
         fake_post_responses[15].status_code = 204
+        # add user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[16].status_code = 204
+        # add user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[17].status_code = 204
+        # get project users
+        fake_post_responses.append(Mock())
+        fake_post_responses[18].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_post_responses.append(Mock())
+        fake_post_responses[19].status_code = 204
+        # set access user2
+        fake_post_responses.append(Mock())
+        fake_post_responses[20].status_code = 204
+
         mock_post.side_effect = fake_post_responses
 
         with patch('tasks.requests.get') as mock_get:
@@ -635,6 +720,21 @@ def test_export_task_resubmission(mock_env_access_key):
         # confirm upload
         fake_responses.append(Mock())
         fake_responses[6].status_code = 204
+        # add user1
+        fake_responses.append(Mock())
+        fake_responses[7].status_code = 204
+        # add user2
+        fake_responses.append(Mock())
+        fake_responses[8].status_code = 204
+        # get project users
+        fake_responses.append(Mock())
+        fake_responses[9].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_responses.append(Mock())
+        fake_responses[10].status_code = 204
+        # set access user2
+        fake_responses.append(Mock())
+        fake_responses[11].status_code = 204
 
         mock_reqs.side_effect = fake_responses
 
@@ -646,7 +746,7 @@ def test_export_task_resubmission(mock_env_access_key):
                 access_code=BLUEBEAM_ACCESS_CODE
             ).apply()
 
-            db.refresh(export_obj)
+        db.refresh(export_obj)
 
         assert export_obj.date_finished is not None
         assert len(export_obj.result['success']) > 0
@@ -984,6 +1084,44 @@ def test_export_status(mock_env_access_key, client):
 
     # clear out the queue
     queue.control.purge()
+
+def test_long_error_message():
+    """
+        test that long error message gets truncated
+    """
+    submission = SubmissionModel(data={'foo':'bar'}, error_message='x'*1000)
+    db.add(submission)
+    db.commit()
+    assert len(submission.error_message) == 255
+
+def test_bluebeam_set_permission_error():
+    """
+        test handling of error when setting user
+        permission in bluebeam
+    """
+    users = db.query(UserModel).all()
+    with patch('service.resources.bluebeam.requests.request') as mock_reqs:
+        fake_responses = []
+        # add user1
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 204
+        # add user2
+        fake_responses.append(Mock())
+        fake_responses[1].status_code = 204
+        # get project users
+        fake_responses.append(Mock())
+        fake_responses[2].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        # set access user1
+        fake_responses.append(Mock())
+        fake_responses[3].status_code = 500
+        fake_responses[3].raise_for_status.side_effect = requests.exceptions.HTTPError
+        # set access user2
+        fake_responses.append(Mock())
+        fake_responses[4].status_code = 204
+
+        mock_reqs.side_effect = fake_responses
+
+        bluebeam.assign_user_permissions('foo', '123-456-789', users)
 
 def finish_submissions_exports():
     """

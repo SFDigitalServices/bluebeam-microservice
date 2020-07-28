@@ -2,6 +2,7 @@
 #pylint: disable=too-few-public-methods, invalid-name
 import os
 import datetime
+import re
 from time import perf_counter
 import requests
 from service.resources.utils import create_url
@@ -209,11 +210,13 @@ def dir_exists(name, project_id, access_token, dirs_array=None):
             return folder['Id']
     return False
 
-def upload_file(access_token, project_id, file_name, file_obj, folder_id):
+def upload_file(access_token, project_id, file_name, file_path, folder_id):
     """
         uploads a file to bluebeam for given project_id and folder_id
     """
     print("bluebeam.upload_file:{0}".format(file_name))
+    # remove illegal characters
+    file_name = re.sub(r'["<>\|:\*\?\\/]', '_', file_name)
 
     upload_dir_of_the_day = "{0} {1}".format(SUBMITTAL_DIR_NAME, datetime.date.today())
     upload_dir_of_the_day_id = dir_exists(upload_dir_of_the_day, project_id, access_token)
@@ -237,7 +240,7 @@ def upload_file(access_token, project_id, file_name, file_obj, folder_id):
     upload_content_type = response_json['UploadContentType']
 
     # upload file
-    upload(upload_url, file_obj, upload_content_type)
+    upload(upload_url, file_path, upload_content_type)
 
     # confirm upload
     return confirm_upload(access_token, project_id, file_id)
@@ -266,20 +269,21 @@ def initiate_upload(access_token, project_id, file_name, folder_id):
     return response.json()
 
 @timer
-def upload(upload_url, file_obj, content_type):
+def upload(upload_url, file_path, content_type):
     """
         uploads file
     """
     print("bluebeam.upload")
-    bluebeam_request(
-        'put',
-        upload_url,
-        data=file_obj,
-        headers={
-            'Content-type': content_type,
-            'x-amz-server-side-encryption': 'AES256'
-        }
-    )
+    with open(file_path, 'rb') as file_obj:
+        bluebeam_request(
+            'put',
+            upload_url,
+            data=file_obj,
+            headers={
+                'Content-Type': content_type,
+                'x-amz-server-side-encryption': 'AES256'
+            }
+        )
 
 @timer
 def confirm_upload(access_token, project_id, file_id):
@@ -325,6 +329,91 @@ def create_directories(access_code, project_id, directories, parent_folder_id=0)
         if "pdf_uploads" in folder and folder["pdf_uploads"]:
             pdf_folder_id = folder_id
     return pdf_folder_id
+
+def assign_user_permissions(access_code, project_id, users):
+    """
+        assigns full access to each email in users
+    """
+    print("assign_user_permissions")
+    emails = list(map(lambda user: user.email, users))
+    for email in emails:
+        # add the user to the project
+        add_project_user(access_code, project_id, email)
+
+    # give the users full access
+    project_users = get_project_users(access_code, project_id)
+    print("project_users: {0}".format(project_users))
+    if 'ProjectUsers' in project_users:
+        for project_user in project_users['ProjectUsers']:
+            # looking for users which were just added
+            if project_user['Email'] in emails:
+                try:
+                    user_id = project_user['Id']
+                    set_full_access_for_user(access_code, project_id, user_id)
+                except Exception as err:    # pylint: disable=broad-except
+                    # non blocking error
+                    # print out error and continue
+                    print("Encountered error giving access to {0}:{1}".format(
+                        project_user['Email'],
+                        err
+                    ))
+
+@timer
+def add_project_user(access_code, project_id, email):
+    """
+        adds a user to a project
+    """
+    print("add_project_user:{0}".format(email))
+    bluebeam_request(
+        'post',
+        '{0}/projects/{1}/users'.format(BLUEBEAM_API_BASE_URL, project_id),
+        json={
+            "Email": email,
+            "SendEmail": False,
+            "Message": "You've been added to Bluebeam project {0}".format(project_id)
+        },
+        headers={
+            'Authorization': 'Bearer {0}'.format(access_code)
+        }
+    )
+
+@timer
+def set_full_access_for_user(access_code, project_id, user_id):
+    """
+        sets full access to allow for user_id
+    """
+    bluebeam_request(
+        'put',
+        '{0}/projects/{1}/users/{2}/permissions'.format(
+            BLUEBEAM_API_BASE_URL,
+            project_id,
+            user_id
+        ),
+        json={
+            "Type": "FullControl",
+            "Allow": "allow"
+        },
+        headers={
+            'Authorization': 'Bearer {0}'.format(access_code)
+        }
+    )
+
+@timer
+def get_project_users(access_code, project_id):
+    """
+        gets users for a project
+    """
+    response = bluebeam_request(
+        'get',
+        '{0}/projects/{1}/users'.format(
+            BLUEBEAM_API_BASE_URL,
+            project_id
+        ),
+        headers={
+            'Authorization': 'Bearer {0}'.format(access_code)
+        }
+    )
+    return response.json()
 
 def bluebeam_request(method, url, data=None, json=None, headers=None):
     """ prints bluebeam requests info to log """
