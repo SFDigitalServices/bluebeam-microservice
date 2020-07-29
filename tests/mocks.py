@@ -245,3 +245,26 @@ ACCESS_TOKEN_RESPONSE = {
 INVALID_GRANT_RESPONSE = {
     "error": "invalid_grant"
 }
+
+GET_PROJECT_USERS_RESPONSE = {
+    "$id": "1",
+    "ProjectUsers": [
+        {
+            "$id": "2",
+            "Id": 984539,
+            "Name": "John Doe",
+            "Email": "user1@test.com",
+            "IsProjectOwner": False,
+            "RestrictedStatus": "Allow"
+        },
+        {
+            "$id": "3",
+            "Id": 1045175,
+            "Name": "Jane Doe",
+            "Email": "user2@test.com",
+            "IsProjectOwner": True,
+            "RestrictedStatus": "Allow"
+        }
+    ],
+    "TotalCount": 2
+}

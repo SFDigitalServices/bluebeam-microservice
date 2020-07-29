@@ -5,11 +5,18 @@ import uuid
 from urllib.parse import urlparse
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy as sa
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
 
 BASE = declarative_base()
+
+REQUIRED_LOGGER_PARAMS = [
+        'spreadsheet_key',
+        'worksheet_title',
+        'id_column_label',
+        'status_column_label'
+    ]
 
 class SubmissionModel(BASE):
     # pylint: disable=too-few-public-methods
@@ -32,6 +39,14 @@ class SubmissionModel(BASE):
         sa.ForeignKey('export_status.guid')
     )
     export_status = relationship('ExportStatusModel', foreign_keys=[export_status_guid])
+
+    @validates('error_message')
+    def validate_code(self, key, value):
+        """enforces maxlength by truncating the value"""
+        max_len = getattr(self.__class__, key).prop.columns[0].type.length
+        if value and len(value) > max_len:
+            return value[:max_len]
+        return value
 
 def create_submission(db_session, json_data):
     """helper function for creating a submission"""
@@ -65,13 +80,8 @@ def validate(json_params):
             raise Exception("_id is required for logging")
         if 'google_sheets' in json_params['logger']:
             missing_msg = "Missing {0} setting in google sheets logger"
-            required_params = [
-                'spreadsheet_key',
-                'worksheet_title',
-                'id_column_label',
-                'status_column_label'
-            ]
-            for param in required_params:
+
+            for param in REQUIRED_LOGGER_PARAMS:
                 if param not in json_params['logger']['google_sheets']:
                     raise Exception(missing_msg.format(param))
 
@@ -102,3 +112,10 @@ def create_export(db_session, bluebeam_username):
     db_session.add(export)
     db_session.commit()
     return export
+
+class UserModel(BASE):
+    # pylint: disable=too-few-public-methods
+    """Map User object to db"""
+    __tablename__ = "user"
+    id = sa.Column('id', sa.Integer, primary_key=True)
+    email = sa.Column('email', sa.String(256))
