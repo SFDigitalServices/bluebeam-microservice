@@ -397,7 +397,7 @@ def set_full_access_for_user(access_code, project_id, user_id):
         ),
         json={
             "Type": "FullControl",
-            "Allow": "allow"
+            "Allow": "Allow"
         },
         headers={
             'Authorization': 'Bearer {0}'.format(access_code)
