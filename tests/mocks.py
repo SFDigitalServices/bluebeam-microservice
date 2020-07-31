@@ -268,3 +268,7 @@ GET_PROJECT_USERS_RESPONSE = {
     ],
     "TotalCount": 2
 }
+
+USER_DOES_NOT_EXIST_RESPONSE = {
+    "ErrorCode": 12001
+}
