@@ -1118,6 +1118,31 @@ def test_bluebeam_set_permission_error():
 
         bluebeam.assign_user_permissions('foo', '123-456-789', users)
 
+def test_user_does_not_exist_permission_error():
+    """
+        test handling of error when adding user to a project
+    """
+    users = db.query(UserModel).all()
+    with patch('service.resources.bluebeam.requests.request') as mock_req:
+        fake_responses = []
+        # add user1
+        fake_responses.append(Mock())
+        fake_responses[0].status_code = 404
+        fake_responses[0].json.return_value = mocks.USER_DOES_NOT_EXIST_RESPONSE
+        fake_responses[0].raise_for_status.side_effect = requests.exceptions.HTTPError
+        # add user2
+        fake_responses.append(Mock())
+        fake_responses[1].status_code = 404
+        fake_responses[1].json.return_value = mocks.USER_DOES_NOT_EXIST_RESPONSE
+        fake_responses[1].raise_for_status.side_effect = requests.exceptions.HTTPError
+        # get project users
+        fake_responses.append(Mock())
+        fake_responses[2].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+
+        mock_req.side_effect = fake_responses
+
+        bluebeam.assign_user_permissions('12345', '123-456-789', users)
+
 def finish_submissions_exports():
     """
         sets the date_exported on all existing submissions and

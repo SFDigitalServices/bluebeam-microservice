@@ -336,9 +336,15 @@ def assign_user_permissions(access_code, project_id, users):
     """
     print("assign_user_permissions")
     emails = list(map(lambda user: user.email, users))
+    added_user_emails = []
     for email in emails:
         # add the user to the project
-        add_project_user(access_code, project_id, email)
+        try:
+            add_project_user(access_code, project_id, email)
+            added_user_emails.append(email)
+        except Exception as err:    # pylint: disable=broad-except
+            # non blocking error
+            print("Unable to add {0} to the project".format(email))
 
     # give the users full access
     project_users = get_project_users(access_code, project_id)
@@ -346,7 +352,7 @@ def assign_user_permissions(access_code, project_id, users):
     if 'ProjectUsers' in project_users:
         for project_user in project_users['ProjectUsers']:
             # looking for users which were just added
-            if project_user['Email'] in emails:
+            if project_user['Email'] in added_user_emails:
                 try:
                     user_id = project_user['Id']
                     set_full_access_for_user(access_code, project_id, user_id)
