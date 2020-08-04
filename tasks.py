@@ -10,6 +10,7 @@ import zipfile
 import shutil
 import traceback
 import requests
+from dateutil import parser
 import celery
 from kombu import serialization
 import celeryconfig
@@ -33,7 +34,7 @@ ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
 
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
-def bluebeam_export(self, export_obj, access_code):
+def bluebeam_export(self, export_obj, access_token):
     # pylint: disable=unused-argument
     """
         exports unexported submissions to bluebeam
@@ -51,6 +52,12 @@ def bluebeam_export(self, export_obj, access_code):
     }
 
     for submission in submissions_to_export:
+        # might have to renew access token
+        now = datetime.utcnow()
+        expiration_date = parser.parse(access_token['.expires'])
+        if now > expiration_date:
+            access_token = bluebeam.refresh_token(access_token['refresh_token'])
+
         # update submission's export_guid in db
         submission.export_status_guid = export_obj.guid
 
@@ -61,13 +68,13 @@ def bluebeam_export(self, export_obj, access_code):
                 # resubmission
                 print("export:resubmission - {0}".format(submission.id))
                 print("project_id: {0}".format(project_id))
-                if bluebeam.project_exists(access_code, project_id):
-                    upload_dir_id = bluebeam.get_upload_dir_id(access_code, project_id)
+                if bluebeam.project_exists(access_token, project_id):
+                    upload_dir_id = bluebeam.get_upload_dir_id(access_token, project_id)
                     upload_files(
                         project_id,
                         upload_dir_id,
                         submission.data.get('files'),
-                        access_code
+                        access_token
                     )
                 else:
                     print(ERR_INVALID_PROJECT_ID)
@@ -86,11 +93,11 @@ def bluebeam_export(self, export_obj, access_code):
                         )
                     else:
                         project_name = submission.data['project_name']
-                    project_id = bluebeam.create_project(access_code, project_name)
+                    project_id = bluebeam.create_project(access_token, project_name)
 
                     # create directory structure
                     upload_dir_id = bluebeam.create_directories(
-                        access_code,
+                        access_token,
                         project_id,
                         bluebeam.DIRECTORY_STRUCTURE
                     )
@@ -98,16 +105,16 @@ def bluebeam_export(self, export_obj, access_code):
                         project_id,
                         upload_dir_id,
                         submission.data.get('files'),
-                        access_code
+                        access_token
                     )
 
                     # assign user permissions
                     users = db_session.query(UserModel).all()
-                    bluebeam.assign_user_permissions(access_code, project_id, users)
+                    bluebeam.assign_user_permissions(access_token, project_id, users)
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
                     if project_id is not None:
-                        bluebeam.delete_project(access_code, project_id)
+                        bluebeam.delete_project(access_token, project_id)
                     raise err
 
             # log success to google sheets
@@ -154,7 +161,7 @@ def bluebeam_export(self, export_obj, access_code):
     db_session.commit()
     db_session.close()
 
-def upload_files(project_id, upload_dir_id, files, access_code):
+def upload_files(project_id, upload_dir_id, files, access_token):
     """
         upload all the files to the upload dir of a project
     """
@@ -199,14 +206,14 @@ def upload_files(project_id, upload_dir_id, files, access_code):
         # handle zips
         if file_name.endswith('.zip'):
             upload_zip(
-                access_code,
+                access_token,
                 project_id,
                 file_path,
                 upload_dir_id
             )
         else:
             bluebeam.upload_file(
-                access_code,
+                access_token,
                 project_id,
                 file_name,
                 file_path,
@@ -239,7 +246,7 @@ def log_status(status, submission_data):
         print("log data:{0}".format(google_settings))
         raise err
 
-def upload_zip(access_code, project_id, file_path, upload_dir_id):
+def upload_zip(access_token, project_id, file_path, upload_dir_id):
     """
         unzips file and uploads pdfs to bluebeam
     """
@@ -254,7 +261,7 @@ def upload_zip(access_code, project_id, file_path, upload_dir_id):
     for f in files: # pylint: disable=invalid-name
         if f.endswith(".pdf"):
             bluebeam.upload_file(
-                access_code,
+                access_token,
                 project_id,
                 f,
                 os.path.join(tmp_dir, f),

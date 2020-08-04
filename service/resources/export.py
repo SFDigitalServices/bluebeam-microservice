@@ -41,7 +41,7 @@ class Export():
                 resp.body = template.render(export_id=export_obj.guid)
 
                 bluebeam_export.apply_async(
-                    (export_obj, access_response['access_token']),
+                    (export_obj, access_response),
                     serializer='pickle',
                 )
             except Exception as err: # pylint: disable=broad-except

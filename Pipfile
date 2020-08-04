@@ -24,6 +24,8 @@ psycopg2 = "*"
 mako = "*"
 redis = "*"
 celery = "*"
+pytz = "*"
+python-dateutil = "*"
 
 [requires]
 python_version = "3.7"
