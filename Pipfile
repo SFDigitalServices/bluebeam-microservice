@@ -4,7 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pylint = "*"
+pre-commit = "*"
+pytest = "*"
+pytest-cov = "*"
+pylint = "==2.4.4"
 
 [packages]
 falcon = "*"
@@ -12,10 +15,6 @@ gunicorn = "*"
 coveralls = "*"
 pyjsend = "*"
 sentry-sdk = "*"
-pytest = "*"
-pytest-cov = "*"
-pre-commit = "*"
-pylint = "*"
 requests = "*"
 requests-oauthlib = "*"
 sqlalchemy = "*"
@@ -24,6 +23,8 @@ psycopg2 = "*"
 mako = "*"
 redis = "*"
 celery = "*"
+pytz = "*"
+python-dateutil = "*"
 
 [requires]
 python_version = "3.7"

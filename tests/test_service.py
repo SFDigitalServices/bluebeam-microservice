@@ -25,7 +25,20 @@ CLIENT_HEADERS = {
 }
 
 BLUEBEAM_USERNAME = "user@sfgov.org"
-BLUEBEAM_ACCESS_CODE = "secret_key"
+NOW = datetime.datetime.utcnow()
+HOUR_FUTURE = NOW + datetime.timedelta(hours=1)
+BLUEBEAM_ACCESS_TOKEN = {
+    "access_token":"secret",
+    "token_type":"bearer",
+    "expires_in":3599,
+    "refresh_token":"secret2",
+    "userName":"user@test.com",
+    "client_id":"client_id",
+    "scope":"scope",
+    "refresh_token_expires_in":"5184000",
+    ".issued":NOW.strftime("%a, %d %b %Y %H:%M:%S %Z"),
+    ".expires":HOUR_FUTURE.strftime("%a, %d %b %Y %H:%M:%S %Z")
+}
 TEST_PDF = 'tests/resources/dummy.pdf'
 ZIP_FILE = 'tests/resources/Archive.zip'
 
@@ -209,7 +222,9 @@ def test_bluebeam_create_project_invalid_name():
 
 def test_export_task_new_project(mock_env_access_key):
     # pylint: disable=unused-argument
-    """Test the export task"""
+    """
+        Test the export task
+    """
     # don't include previous submission
     finish_submissions_exports()
     # create a submission so there's something to export
@@ -222,55 +237,63 @@ def test_export_task_new_project(mock_env_access_key):
     # mock all responses for expected requests
     with patch('service.resources.bluebeam.requests.request') as mock_post:
         fake_post_responses = []
+        # refresh token
+        fake_post_responses.append(Mock())
+        fake_post_responses[0].json.return_value = BLUEBEAM_ACCESS_TOKEN
+        fake_post_responses[0].status_code = 200
         # create project
         fake_post_responses.append(Mock())
-        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
-        fake_post_responses[0].status_code = 200
+        fake_post_responses[1].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[1].status_code = 200
         # create folders
-        i = 1
-        while i < 7:
+        i = 2
+        while i < 8:
             fake_post_responses.append(Mock())
             fake_post_responses[i].json.return_value = mocks.CREATE_FOLDER_RESPONSE
             i += 1
         # get folders
         fake_post_responses.append(Mock())
-        fake_post_responses[7].json.return_value = mocks.GET_FOLDERS_RESPONSE
+        fake_post_responses[8].json.return_value = mocks.GET_FOLDERS_RESPONSE
         # create folders
         fake_post_responses.append(Mock())
-        fake_post_responses[8].json.return_value = mocks.CREATE_FOLDER_RESPONSE
+        fake_post_responses[9].json.return_value = mocks.CREATE_FOLDER_RESPONSE
         # initiate upload
         fake_post_responses.append(Mock())
-        fake_post_responses[9].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
+        fake_post_responses[10].json.return_value = mocks.INIT_FILE_UPLOAD_RESPONSE
         # upload
         fake_post_responses.append(Mock())
-        fake_post_responses[10].return_value.status_code = 200
+        fake_post_responses[11].return_value.status_code = 200
         # confirm upload
         fake_post_responses.append(Mock())
-        fake_post_responses[11].status_code = 204
+        fake_post_responses[12].status_code = 204
         # add user1
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[13].status_code = 204
         # add user2
         fake_post_responses.append(Mock())
-        fake_post_responses[13].status_code = 204
+        fake_post_responses[14].status_code = 204
         # get project users
         fake_post_responses.append(Mock())
-        fake_post_responses[14].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
+        fake_post_responses[15].json.return_value = mocks.GET_PROJECT_USERS_RESPONSE
         # set access user1
         fake_post_responses.append(Mock())
-        fake_post_responses[12].status_code = 204
+        fake_post_responses[16].status_code = 204
         # set access user2
         fake_post_responses.append(Mock())
-        fake_post_responses[13].status_code = 204
+        fake_post_responses[17].status_code = 204
 
         mock_post.side_effect = fake_post_responses
 
         with patch('tasks.requests.patch') as mock_patch:
             mock_patch.status_code = 200
 
+            # also test refreshing token
+            expired_token = BLUEBEAM_ACCESS_TOKEN.copy()
+            hour_past = HOUR_FUTURE - datetime.timedelta(hours=1)
+            expired_token['.expires'] = hour_past.strftime("%a, %d %b %Y %H:%M:%S %Z")
             bluebeam_export.s(
                 export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
+                access_token=expired_token
             ).apply()
 
         db.refresh(export_obj)
@@ -341,7 +364,7 @@ def test_export_task_new_project_no_files(mock_env_access_key):
 
         bluebeam_export.s(
             export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
+            access_token=BLUEBEAM_ACCESS_TOKEN
         ).apply()
 
         db.refresh(export_obj)
@@ -414,7 +437,7 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
 
                 bluebeam_export.s(
                     export_obj=export_obj,
-                    access_code=BLUEBEAM_ACCESS_CODE
+                    access_token=BLUEBEAM_ACCESS_TOKEN
                 ).apply()
 
         db.refresh(export_obj)
@@ -485,7 +508,7 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
 
         bluebeam_export.s(
             export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
+            access_token=BLUEBEAM_ACCESS_TOKEN
         ).apply()
 
         db.refresh(export_obj)
@@ -580,7 +603,7 @@ def test_export_task_new_project_zip(mock_env_access_key):
 
                 bluebeam_export.s(
                     export_obj=export_obj,
-                    access_code=BLUEBEAM_ACCESS_CODE
+                    access_token=BLUEBEAM_ACCESS_TOKEN
                 ).apply()
 
         db.refresh(export_obj)
@@ -666,7 +689,7 @@ def test_export_task_new_project_zip_upload_err(mock_env_access_key):
 
                 bluebeam_export.s(
                     export_obj=export_obj,
-                    access_code=BLUEBEAM_ACCESS_CODE
+                    access_token=BLUEBEAM_ACCESS_TOKEN
                 ).apply()
 
         db.refresh(export_obj)
@@ -738,7 +761,7 @@ def test_export_task_resubmission(mock_env_access_key):
 
             bluebeam_export.s(
                 export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
+                access_token=BLUEBEAM_ACCESS_TOKEN
             ).apply()
 
         db.refresh(export_obj)
@@ -794,7 +817,7 @@ def test_export_task_resubmission_log_status_error(mock_env_access_key):
 
             bluebeam_export.s(
                 export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
+                access_token=BLUEBEAM_ACCESS_TOKEN
             ).apply()
 
             db.refresh(export_obj)
@@ -830,7 +853,7 @@ def test_export_task_resubmission_no_upload_dir(mock_env_access_key):
 
         bluebeam_export.s(
             export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
+            access_token=BLUEBEAM_ACCESS_TOKEN
         ).apply()
 
         db.refresh(export_obj)
@@ -862,7 +885,7 @@ def test_export_task_resubmission_no_project(mock_env_access_key):
 
         bluebeam_export.s(
             export_obj=export_obj,
-            access_code=BLUEBEAM_ACCESS_CODE
+            access_token=BLUEBEAM_ACCESS_TOKEN
         ).apply()
 
         db.refresh(export_obj)
@@ -925,7 +948,7 @@ def test_export_task_file_upload_error(mock_env_access_key):
 
             bluebeam_export.s(
                 export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
+                access_token=BLUEBEAM_ACCESS_TOKEN
             ).apply()
 
         db.refresh(export_obj)
@@ -970,7 +993,7 @@ def test_export_task_no_upload_folder(mock_env_access_key):
 
             bluebeam_export.s(
                 export_obj=export_obj,
-                access_code=BLUEBEAM_ACCESS_CODE
+                access_token=BLUEBEAM_ACCESS_TOKEN
             ).apply()
 
             db.refresh(export_obj)
@@ -1116,7 +1139,7 @@ def test_bluebeam_set_permission_error():
 
         mock_reqs.side_effect = fake_responses
 
-        bluebeam.assign_user_permissions('foo', '123-456-789', users)
+        bluebeam.assign_user_permissions(BLUEBEAM_ACCESS_TOKEN, '123-456-789', users)
 
 def test_user_does_not_exist_permission_error():
     """
@@ -1141,7 +1164,7 @@ def test_user_does_not_exist_permission_error():
 
         mock_req.side_effect = fake_responses
 
-        bluebeam.assign_user_permissions('12345', '123-456-789', users)
+        bluebeam.assign_user_permissions(BLUEBEAM_ACCESS_TOKEN, '123-456-789', users)
 
 def finish_submissions_exports():
     """
