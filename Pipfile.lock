@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "35d353e1ca1bd60dba6606ddb33acfb86520566d42160ccaccb51de239c8405d"
+            "sha256": "f6c4464622a7ea93d185c1babc54dc4843011e97b66dbe322d8f5e7fedd4113b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -370,10 +370,10 @@
         },
         "astroid": {
             "hashes": [
-                "sha256:2f4078c2a41bf377eea06d71c9d2ba4eb8f6b1af2135bec27bbbb7d8f12bb703",
-                "sha256:bc58d83eb610252fd8de6363e39d4f1d0619c894b0ed24603b881c02e64c7386"
+                "sha256:71ea07f44df9568a75d0f354c49143a4575d90645e9fead6dfb52c26a85ed13a",
+                "sha256:840947ebfa8b58f318d42301cf8c0a20fd794a33b61cc4638e28e9e61ba32f42"
             ],
-            "version": "==2.4.2"
+            "version": "==2.3.3"
         },
         "attrs": {
             "hashes": [
@@ -464,6 +464,13 @@
             ],
             "version": "==1.0.1"
         },
+        "isort": {
+            "hashes": [
+                "sha256:54da7e92468955c4fceacd0c86bd0ec997b0e1ee80d97f67c35a78b719dccab1",
+                "sha256:6e811fcb295968434526407adb8796944f1988c5b65e8139058f2014cbe100fd"
+            ],
+            "version": "==4.3.21"
+        },
         "lazy-object-proxy": {
             "hashes": [
                 "sha256:0c4b206227a8097f05c4dbdd323c50edf81f15db3b8dc064d08c62d37e1a504d",
@@ -490,11 +497,12 @@
             ],
             "version": "==1.4.3"
         },
-        "logilab-common": {
+        "mccabe": {
             "hashes": [
-                "sha256:c071689615331598e5c7c634edd1e663eac5f2cb44754e9c4bc1470a6063979a"
+                "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42",
+                "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"
             ],
-            "version": "==1.7.2"
+            "version": "==0.6.1"
         },
         "more-itertools": {
             "hashes": [
@@ -502,13 +510,6 @@
                 "sha256:b78134b2063dd214000685165d81c154522c3ee0a1c0d4d113c80361c234c5a2"
             ],
             "version": "==8.4.0"
-        },
-        "mypy-extensions": {
-            "hashes": [
-                "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d",
-                "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"
-            ],
-            "version": "==0.4.3"
         },
         "nodeenv": {
             "hashes": [
@@ -547,11 +548,11 @@
         },
         "pylint": {
             "hashes": [
-                "sha256:0561af4d6bd4fa9e8e02f3997fe93684f7187c57bcef9db8c2ea9fb0d7d2f022",
-                "sha256:91a8bf027fb7525a0fc1dc0f2e11c2b50079ff04d36e922f4ce41d2f353950ab"
+                "sha256:3db5468ad013380e987410a8d6956226963aed94ecb5f9d3a28acca6d9ac36cd",
+                "sha256:886e6afc935ea2590b462664b161ca9a5e40168ea99e5300935f6591ad467df4"
             ],
             "index": "pypi",
-            "version": "==1.4.4"
+            "version": "==2.4.4"
         },
         "pyparsing": {
             "hashes": [
@@ -633,14 +634,6 @@
             "markers": "implementation_name == 'cpython' and python_version < '3.8'",
             "version": "==1.4.1"
         },
-        "typing-extensions": {
-            "hashes": [
-                "sha256:6e95524d8a547a91e08f404ae485bbb71962de46967e1b71a0cb89af24e761c5",
-                "sha256:79ee589a3caca649a9bfd2a8de4709837400dfa00b6cc81962a1e6a1815969ae",
-                "sha256:f8d2bd89d25bc39dabe7d23df520442fa1d8969b82544370e03d88b5a591c392"
-            ],
-            "version": "==3.7.4.2"
-        },
         "virtualenv": {
             "hashes": [
                 "sha256:8aa9c37b082664dbce2236fa420759c02d64109d8e6013593ad13914718a30fd",
@@ -650,9 +643,9 @@
         },
         "wrapt": {
             "hashes": [
-                "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"
+                "sha256:565a021fd19419476b9362b05eeaa094178de64f8361e44468f9e9d7843901e1"
             ],
-            "version": "==1.12.1"
+            "version": "==1.11.2"
         },
         "zipp": {
             "hashes": [

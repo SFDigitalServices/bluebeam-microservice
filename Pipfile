@@ -7,7 +7,7 @@ verify_ssl = true
 pre-commit = "*"
 pytest = "*"
 pytest-cov = "*"
-pylint = "==1.4.4"
+pylint = "==2.4.4"
 
 [packages]
 falcon = "*"
