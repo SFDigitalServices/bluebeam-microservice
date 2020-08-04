@@ -8,6 +8,7 @@ import uuid
 import datetime
 from unittest.mock import patch, Mock
 import copy
+import pytz
 import jsend
 import pytest
 import requests
@@ -25,7 +26,7 @@ CLIENT_HEADERS = {
 }
 
 BLUEBEAM_USERNAME = "user@sfgov.org"
-NOW = datetime.datetime.utcnow()
+NOW = datetime.datetime.utcnow().astimezone(pytz.UTC)
 HOUR_FUTURE = NOW + datetime.timedelta(hours=1)
 BLUEBEAM_ACCESS_TOKEN = {
     "access_token":"secret",
