@@ -11,6 +11,7 @@ import shutil
 import traceback
 import requests
 from dateutil import parser
+import pytz
 import celery
 from kombu import serialization
 import celeryconfig
@@ -53,7 +54,7 @@ def bluebeam_export(self, export_obj, access_token):
 
     for submission in submissions_to_export:
         # might have to renew access token
-        now = datetime.utcnow()
+        now = datetime.utcnow().astimezone(pytz.UTC)
         expiration_date = parser.parse(access_token['.expires'])
         if now > expiration_date:
             access_token = bluebeam.refresh_token(access_token['refresh_token'])
