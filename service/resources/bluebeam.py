@@ -4,8 +4,12 @@ import os
 import datetime
 import re
 from time import perf_counter
+import json
+from dateutil import parser
+import pytz
 import requests
-from service.resources.utils import create_url
+from service.resources.utils import create_url, encrypt, decrypt
+from service.resources.models import TokenModel
 # from oauthlib.oauth2 import LegacyApplicationClient
 # from requests_oauthlib import OAuth2Session
 
@@ -14,9 +18,6 @@ BLUEBEAM_CLIENT_SECRET = os.environ.get('BLUEBEAM_CLIENT_SECRET')
 BLUEBEAM_AUTHSERVER = os.environ.get('BLUEBEAM_AUTHSERVER')
 BLUEBEAM_AUTH_PATH = '/auth/oauth/authorize'
 BLUEBEAM_TOKEN_PATH = '/auth/token'
-
-# USERNAME = os.environ.get('BLUEBEAM_USERNAME')
-# PASSWORD = os.environ.get('BLUEBEAM_PASSWORD')
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
 UPLOAD_DIR_NAME = "2.DOCUMENTS FOR REVIEW"
@@ -34,6 +35,7 @@ DIRECTORY_STRUCTURE = [
 ]
 
 ERR_NO_UPLOAD_DIR_FOUND = "Could not find the upload directory on Bluebeam"
+ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY").encode()
 
 def timer(func):
     """
@@ -118,6 +120,42 @@ def refresh_token(token):
         }
     )
     return response.json()
+
+def get_auth_token(dbSession):
+    """
+        retrieve auth token from db
+    """
+    token_query = dbSession.query(TokenModel)
+    if token_query.count() > 0:
+        token = token_query.first()
+        # convert to json
+        token = json.loads(decrypt(ENCRYPTION_KEY, token.value))
+
+        # maybe refresh token
+        now = datetime.datetime.utcnow().astimezone(pytz.UTC)
+        expiration_date = parser.parse(token['.expires'])
+        if now > expiration_date:
+            token = refresh_token(token['refresh_token'])
+            save_auth_token(dbSession, token)
+
+        return token
+
+    return None
+
+def save_auth_token(dbSession, json_token):
+    """
+        save auth token to db
+    """
+    token_query = dbSession.query(TokenModel)
+    token = None
+    if token_query.count() > 0:
+        token = token_query.first()
+    else:
+        token = TokenModel()
+        dbSession.add(token)
+
+    token.value = encrypt(ENCRYPTION_KEY, json.dumps(json_token))
+    dbSession.commit()
 
 @timer
 def create_project(access, project_name):
@@ -415,7 +453,7 @@ def get_project_users(access, project_id):
     )
     return response.json()
 
-def bluebeam_request(method, url, data=None, json=None, headers=None, access=None): #pylint: disable=too-many-arguments
+def bluebeam_request(method, url, data=None, json=None, headers=None, access=None): #pylint: disable=too-many-arguments,redefined-outer-name
     """ prints bluebeam requests info to log """
     print("endpoint: {0}".format(url))
     print("method: {0}".format(method))

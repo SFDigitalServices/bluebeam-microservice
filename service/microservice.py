@@ -8,6 +8,7 @@ from .resources.db import create_session
 from .resources.welcome import Welcome
 from .resources.submission import Submission
 from .resources.export import Export, ExportStatus
+from .resources.login import Login
 
 def start_service():
     """Start this service
@@ -21,6 +22,7 @@ def start_service():
     api.add_route('/submission', Submission())
     api.add_route('/export/status', ExportStatus())
     api.add_route('/export', Export())
+    api.add_route('/login', Login())
     api.add_static_route('/static', os.path.abspath('static'))
     api.add_sink(default_error, '^((?!static).)*$')
     return api

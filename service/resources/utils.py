@@ -1,6 +1,7 @@
 """Utils module"""
 from urllib.parse import urlparse, urlunparse, urlencode
 from uuid import UUID
+from cryptography.fernet import Fernet
 
 def create_url(base_url, path, args_dict=None):
     """ helper for creating urls """
@@ -21,3 +22,32 @@ def is_valid_uuid(uuid_to_test, version=4):
         return False
 
     return str(uuid_obj) == uuid_to_test
+
+def encrypt(key, message):
+    """
+        encrypt the message with key
+    """
+    return Fernet(key).encrypt(message.encode())
+
+def decrypt(key, token):
+    """
+        decrypt the token with key
+    """
+    return Fernet(key).decrypt(token).decode()
+
+def get_files(submission_json):
+    """ find the json files blob since in can be in several different places """
+    upload_fields = [
+        'addendaUploads',
+        'optionalUploads',
+        'requiredUploads',
+        'uploads'
+    ]
+    uploads = []
+    submission_data = submission_json.get('data')
+    for field in upload_fields:
+        field_value = submission_data.get(field)
+        if field_value is not None and len(field_value) > 0:
+            uploads += submission_data.get(field)
+
+    return uploads
