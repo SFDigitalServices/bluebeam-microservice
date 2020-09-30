@@ -102,7 +102,7 @@ def test_export_task_new_project(mock_env_access_key):
             bluebeam.save_auth_token(db, expired_token)
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -179,7 +179,7 @@ def test_export_task_new_project_no_files(mock_env_access_key):
             mock_patch.status_code = 200
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -255,7 +255,7 @@ def test_export_task_new_project_bucketeer(mock_env_access_key):
                     mock_patch.status_code = 200
 
                     bluebeam_export.s(
-                        export_obj=export_obj
+                        export_id=export_obj.guid
                     ).apply()
 
         db.refresh(export_obj)
@@ -329,7 +329,7 @@ def test_export_task_new_project_with_permit_number(mock_env_access_key):
             mock_patch.status_code = 200
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -427,7 +427,7 @@ def test_export_task_new_project_zip(mock_env_access_key):
                     mock_patch.status_code = 200
 
                     bluebeam_export.s(
-                        export_obj=export_obj
+                        export_id=export_obj.guid
                     ).apply()
 
         db.refresh(export_obj)
@@ -516,7 +516,7 @@ def test_export_task_new_project_zip_upload_err(mock_env_access_key):
                     mock_patch.status_code = 200
 
                     bluebeam_export.s(
-                        export_obj=export_obj
+                        export_id=export_obj.guid
                     ).apply()
 
         db.refresh(export_obj)
@@ -590,7 +590,7 @@ def test_export_task_resubmission(mock_env_access_key):
                 mock_patch.status_code = 200
 
                 bluebeam_export.s(
-                    export_obj=export_obj
+                    export_id=export_obj.guid
                 ).apply()
 
         db.refresh(export_obj)
@@ -644,7 +644,7 @@ def test_export_task_resubmission_log_status_error(mock_env_access_key):
             mock_patch.side_effect = Exception("Patch error")
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -683,7 +683,7 @@ def test_export_task_resubmission_no_upload_dir(mock_env_access_key):
             mock_patch.status_code = 200
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -718,7 +718,7 @@ def test_export_task_resubmission_no_project(mock_env_access_key):
             mock_patch.status_code = 200
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -779,7 +779,7 @@ def test_export_task_file_upload_error(mock_env_access_key):
             mock_patch.status_code = 200
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
         db.refresh(export_obj)
@@ -823,7 +823,7 @@ def test_export_task_no_upload_folder(mock_env_access_key):
             ]
 
             bluebeam_export.s(
-                export_obj=export_obj
+                export_id=export_obj.guid
             ).apply()
 
             db.refresh(export_obj)

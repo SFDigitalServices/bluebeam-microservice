@@ -35,17 +35,17 @@ ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
 
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
-def bluebeam_export(self, export_obj):
+def bluebeam_export(self, export_id):
     # pylint: disable=unused-argument
     """
         exports unexported submissions to bluebeam
     """
-    print("export:guid - {0}".format(export_obj.guid))
+    print("export:guid - {0}".format(export_id))
 
     session = create_session()
     db_session = session()
     submissions_to_export = db_session.query(SubmissionModel).filter( # pylint: disable=no-member
-        SubmissionModel.export_status_guid == export_obj.guid
+        SubmissionModel.export_status_guid == export_id
     )
     statuses = {
         'success': [],
@@ -146,7 +146,7 @@ def bluebeam_export(self, export_obj):
 
     # finished export
     export_status = db_session.query(ExportStatusModel).filter(
-        ExportStatusModel.guid == export_obj.guid
+        ExportStatusModel.guid == export_id
     ).first()
     export_status.date_finished = datetime.utcnow()
     export_status.result = statuses
@@ -195,7 +195,7 @@ def scheduler(self):
             db_session.commit()
 
             bluebeam_export.apply_async(
-                args=(export_obj,),
+                args=(export_obj.guid,),
                 serializer='pickle'
             )
     except Exception as err:    # pylint: disable=broad-except

@@ -44,6 +44,9 @@ Set ACCESS_KEY environment var and start WSGI Server
 Start celery worker
 > $ pipenv run celery worker
 
+Start celery beat work
+> $ pipenv run celery -A tasks beat --loglevel=info
+
 Run Pytest
 > $ pipenv run python -m pytest
 
