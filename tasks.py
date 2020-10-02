@@ -274,11 +274,11 @@ def log_status(status, action_state, submission):
     """
     try:
         status_response = requests.patch(
-            '{0}/application/{1}'.format(
+            '{0}/applications/{1}'.format(
                 os.environ.get('BUILDING_PERMITS_URL').rstrip('/'),
-                submission.id),
+                submission.data.get('_id')),
             headers={'x-apikey':os.environ.get('BUILDING_PERMITS_API_KEY')},
-            params={
+            json={
                 'actionState':action_state,
                 'bluebeamStatus':status
             }
