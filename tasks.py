@@ -268,6 +268,19 @@ def upload_files(project_id, upload_dir_id, files, access_token):
         # cleanup
         shutil.rmtree(tmp_dir)
 
+def format_project_id(project_id):
+    """
+        adds dashes to a bluebeam project id
+    """
+    if len(project_id) == 9 and project_id.isdigit():
+        return "{}-{}-{}".format(
+            project_id[:3],
+            project_id[3:6],
+            project_id[6:]
+        )
+
+    return project_id
+
 def log_status(status, action_state, submission):
     """
         log status to google sheets

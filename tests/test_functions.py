@@ -9,6 +9,7 @@ from service.resources.models import is_url, TokenModel
 import service.resources.utils as utils
 import tests.mocks as mocks
 import tests.utils as test_utils
+from tasks import format_project_id
 
 session = create_session() # pylint: disable=invalid-name
 db = session() # pylint: disable=invalid-name
@@ -74,3 +75,20 @@ def test_save_get_token():
         retrieved_token = bluebeam.get_auth_token(db)
 
     assert test_utils.BLUEBEAM_ACCESS_TOKEN == retrieved_token
+
+def test_format_project_id():
+    """ Test the format_project_id function from tasks.py """
+    project_id = format_project_id("123456789")
+    assert project_id == "123-456-789"
+
+    input_id = "12345"
+    project_id = format_project_id(input_id)
+    assert project_id == input_id
+
+    input_id = "1234567890"
+    project_id = format_project_id(input_id)
+    assert project_id == input_id
+
+    input_id = "ABCDEFG"
+    project_id = format_project_id(input_id)
+    assert project_id == input_id
