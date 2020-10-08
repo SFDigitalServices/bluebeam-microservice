@@ -18,6 +18,6 @@ accept_content = ['pickle', 'application/x-python-serialize', 'json', 'applicati
 beat_schedule = {
     "scheduler": {
         "task": "tasks.scheduler",
-        "schedule": 300.0 # run every 5 minutes
+        "schedule": int(os.environ.get('CELERY_BEAT_SCHEDULE', '300')) # default 5min
     }
 }

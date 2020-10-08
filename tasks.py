@@ -28,9 +28,6 @@ celery_app = celery.Celery('bluebeam-microservice')
 celery_app.config_from_object(celeryconfig)
 # pylint: enable=invalid-name
 
-SPREADSHEETS_URL = os.environ.get('SPREADSHEETS_MICROSERVICE_URL').rstrip('/')
-SPREADSHEETS_API_KEY = os.environ.get('SPREADSHEETS_MICROSERVICE_API_KEY')
-
 ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
 
