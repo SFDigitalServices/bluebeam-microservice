@@ -32,6 +32,7 @@ def test_export_task_new_project(mock_env_access_key):
     """
         Test the export task
     """
+    print("begin test_export_task_new_project")
     # don't include previous submission
     test_utils.finish_submissions_exports()
     # create a submission so there's something to export
@@ -518,6 +519,56 @@ def test_export_task_new_project_zip_upload_err(mock_env_access_key):
                     bluebeam_export.s(
                         export_id=export_obj.guid
                     ).apply()
+
+        db.refresh(export_obj)
+
+        assert export_obj.date_finished is not None
+        assert len(export_obj.result['success']) == 0
+        assert len(export_obj.result['failure']) > 0
+
+    # clear out the queue
+    queue.control.purge()
+
+def test_export_task_delete_project_err(mock_env_access_key):
+    # pylint: disable=unused-argument
+    """
+        Test the export task where there is an error when trying to
+        clean up and recover from an error
+    """
+    print("begin test_export_task_create_project_err")
+    # don't include previous submission
+    test_utils.finish_submissions_exports()
+    # create the export
+    export_obj = create_export(db)
+    # create a submission so there's something to export
+    create_submission(db, mocks.SUBMISSION_POST_DATA_ZIP, export_obj.guid)
+    # mock all responses for expected requests
+    with patch('service.resources.bluebeam.requests.request') as mock_post:
+        fake_post_responses = []
+        # create project
+        fake_post_responses.append(Mock())
+        fake_post_responses[0].json.return_value = mocks.CREATE_PROJECT_RESPONSE
+        fake_post_responses[0].status_code = 200
+
+        # create folder
+        fake_post_responses.append(Mock())
+        fake_post_responses[1].status_code = 500
+        fake_post_responses[1] = Exception("Error creating folder")
+
+        # delete project
+        fake_post_responses.append(Mock())
+        fake_post_responses[2].status_code = 500
+        fake_post_responses[2] = Exception("Error deleting non existing project")
+
+        mock_post.side_effect = fake_post_responses
+
+        #patch the logger request
+        with patch('tasks.requests.patch') as mock_patch:
+            mock_patch.status_code = 200
+
+            bluebeam_export.s(
+                export_id=export_obj.guid
+            ).apply()
 
         db.refresh(export_obj)
 

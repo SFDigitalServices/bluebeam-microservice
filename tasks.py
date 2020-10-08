@@ -106,12 +106,21 @@ def bluebeam_export(self, export_id):
                     bluebeam.assign_user_permissions(access_token, project_id, users)
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
+                    print("Exception caught: {0}".format(project_id))
                     if project_id is not None:
-                        bluebeam.delete_project(access_token, project_id)
+                        try:
+                            bluebeam.delete_project(access_token, project_id)
+                        except Exception as delete_err: # pylint: disable=broad-except
+                            pass
                     raise err
 
             # log success
-            log_status(project_id, 'Done', submission)
+            log_status(
+                {
+                    'actionState':project_id,
+                    'bluebeamStatus':'done'
+                },
+                submission.data.get('_id'))
 
             # finished exporting this submission
             statuses['success'].append({
@@ -135,7 +144,12 @@ def bluebeam_export(self, export_id):
 
             # log error
             try:
-                log_status('Error: {}'.format(err_msg), 'Error', submission)
+                log_status(
+                    {
+                        'actionState':'Error: {}'.format(err_msg),
+                        'bluebeamStatus':'Error'
+                    },
+                    submission.data.get('_id'))
             except Exception: #pylint: disable=broad-except
                 pass
 
@@ -178,8 +192,12 @@ def scheduler(self):
         queued_submissions = submissions_response.json()
         print("submissions from Building Permits API:{0}".format(queued_submissions))
         for submission in queued_submissions:
-            export_obj = create_export(db_session)
+            log_status(
+                {'actionState':'processing'},
+                submission['_id']
+            )
 
+            export_obj = create_export(db_session)
             create_submission(
                 db_session,
                 json_data={
@@ -279,7 +297,7 @@ def format_project_id(project_id):
 
     return project_id
 
-def log_status(status, action_state, submission):
+def log_status(status, formio_id):
     """
         log status to google sheets
     """
@@ -287,19 +305,15 @@ def log_status(status, action_state, submission):
         status_response = requests.patch(
             '{0}/applications/{1}'.format(
                 os.environ.get('BUILDING_PERMITS_URL').rstrip('/'),
-                submission.data.get('_id')),
+                formio_id),
             headers={'x-apikey':os.environ.get('BUILDING_PERMITS_API_KEY')},
-            json={
-                'actionState':action_state,
-                'bluebeamStatus':status
-            }
+            json=status
         )
         status_response.raise_for_status()
     except Exception as err: # pylint: disable=broad-except
         print("Encountered error in log_status:{0}".format(err))
-        print("submission:{0}".format(submission))
-        print("actionState:{0}".format(action_state))
-        print("bluebeamStatus:{0}".format(status))
+        print("submission_id:{0}".format(formio_id))
+        print("status:{0}".format(status))
         raise err
 
 def upload_zip(access_token, project_id, file_path, upload_dir_id):
