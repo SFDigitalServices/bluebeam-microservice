@@ -531,6 +531,7 @@ def test_export_task_new_project_zip_upload_err(mock_env_access_key):
 def test_export_task_resubmission(mock_env_access_key):
     # pylint: disable=unused-argument
     """Test the export resubmission task"""
+    print("begin test_export_task_resubmission")
     # don't include previous submission
     test_utils.finish_submissions_exports()
     # create a resubmission so there's something to export
