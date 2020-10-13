@@ -10,14 +10,14 @@ import zipfile
 import shutil
 import traceback
 import requests
-from dateutil import parser
-import pytz
 import celery
 from kombu import serialization
 import celeryconfig
 import service.resources.bluebeam as bluebeam
-from service.resources.models import SubmissionModel, ExportStatusModel, UserModel
+from service.resources.models import create_submission, create_export,\
+    SubmissionModel, ExportStatusModel, UserModel
 from service.resources.db import create_session
+import service.resources.utils as utils
 
 TEMP_DIR = 'tmp'
 serialization.register_pickle()
@@ -28,24 +28,21 @@ celery_app = celery.Celery('bluebeam-microservice')
 celery_app.config_from_object(celeryconfig)
 # pylint: enable=invalid-name
 
-SPREADSHEETS_URL = os.environ.get('SPREADSHEETS_MICROSERVICE_URL').rstrip('/')
-SPREADSHEETS_API_KEY = os.environ.get('SPREADSHEETS_MICROSERVICE_API_KEY')
-
 ERR_UPLOAD_FAIL = "Unable to upload file"
 ERR_INVALID_PROJECT_ID = "Invalid Bluebeam project id"
 
 @celery_app.task(name="tasks.bluebeam_export", bind=True)
-def bluebeam_export(self, export_obj, access_token):
+def bluebeam_export(self, export_id):
     # pylint: disable=unused-argument
     """
         exports unexported submissions to bluebeam
     """
-    print("export:guid - {0}".format(export_obj.guid))
+    print("export:guid - {0}".format(export_id))
 
     session = create_session()
     db_session = session()
     submissions_to_export = db_session.query(SubmissionModel).filter( # pylint: disable=no-member
-        SubmissionModel.export_status_guid.is_(None)
+        SubmissionModel.export_status_guid == export_id
     )
     statuses = {
         'success': [],
@@ -53,14 +50,8 @@ def bluebeam_export(self, export_obj, access_token):
     }
 
     for submission in submissions_to_export:
-        # might have to renew access token
-        now = datetime.utcnow().astimezone(pytz.UTC)
-        expiration_date = parser.parse(access_token['.expires'])
-        if now > expiration_date:
-            access_token = bluebeam.refresh_token(access_token['refresh_token'])
-
-        # update submission's export_guid in db
-        submission.export_status_guid = export_obj.guid
+        # get access token
+        access_token = bluebeam.get_auth_token(db_session)
 
         project_id = submission.data.get('project_id', None)
         upload_dir_id = None
@@ -68,6 +59,7 @@ def bluebeam_export(self, export_obj, access_token):
             if project_id and project_id is not None:
                 # resubmission
                 print("export:resubmission - {0}".format(submission.id))
+                project_id = format_project_id(project_id)
                 print("project_id: {0}".format(project_id))
                 if bluebeam.project_exists(access_token, project_id):
                     upload_dir_id = bluebeam.get_upload_dir_id(access_token, project_id)
@@ -114,13 +106,21 @@ def bluebeam_export(self, export_obj, access_token):
                     bluebeam.assign_user_permissions(access_token, project_id, users)
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
+                    print("Exception caught: {0}".format(project_id))
                     if project_id is not None:
-                        bluebeam.delete_project(access_token, project_id)
+                        try:
+                            bluebeam.delete_project(access_token, project_id)
+                        except Exception as delete_err: # pylint: disable=broad-except
+                            pass
                     raise err
 
-            # log success to google sheets
-            if 'logger' in submission.data:
-                log_status(project_id, submission.data)
+            # log success
+            log_status(
+                {
+                    'actionState':project_id,
+                    'bluebeamStatus':'done'
+                },
+                submission.data.get('_id'))
 
             # finished exporting this submission
             statuses['success'].append({
@@ -142,11 +142,15 @@ def bluebeam_export(self, export_obj, access_token):
                 'err': err_msg
             })
 
-            # log error to google sheets
+            # log error
             try:
-                if 'logger' in submission.data:
-                    log_status('Error: {}'.format(err_msg), submission.data)
-            except Exception as err: # pylint: disable=broad-except
+                log_status(
+                    {
+                        'actionState':'Error: {}'.format(err_msg),
+                        'bluebeamStatus':'Error'
+                    },
+                    submission.data.get('_id'))
+            except Exception: #pylint: disable=broad-except
                 pass
 
         # commit update this submission immediately
@@ -154,13 +158,69 @@ def bluebeam_export(self, export_obj, access_token):
 
     # finished export
     export_status = db_session.query(ExportStatusModel).filter(
-        ExportStatusModel.guid == export_obj.guid
+        ExportStatusModel.guid == export_id
     ).first()
     export_status.date_finished = datetime.utcnow()
     export_status.result = statuses
 
     db_session.commit()
     db_session.close()
+
+@celery_app.task(name="tasks.scheduler", bind=True)
+def scheduler(self):
+    # pylint: disable=unused-argument
+    """
+        queries for building permit applications and
+        schedules them to be exported to bluebeam
+    """
+    print("scheduler starting...")
+
+    session = create_session()
+    db_session = session()
+
+    # check queued records
+    try:
+        submissions_response = requests.get(
+            '{0}/applications'.format(os.environ.get('BUILDING_PERMITS_URL').rstrip('/')),
+            headers={'x-apikey':os.environ.get('BUILDING_PERMITS_API_KEY')},
+            params={
+                'actionState':os.environ.get('BLUEBEAM_ACTION_STATE_VALUE')
+            }
+        )
+        submissions_response.raise_for_status()
+
+        queued_submissions = submissions_response.json()
+        print("submissions from Building Permits API:{0}".format(queued_submissions))
+        for submission in queued_submissions:
+            log_status(
+                {'actionState':'processing'},
+                submission['_id']
+            )
+
+            export_obj = create_export(db_session)
+            create_submission(
+                db_session,
+                json_data={
+                    '_id':submission.get('_id'),
+                    'building_permit_number':submission['data'].get('buildingPermitApplicationNumber'), #pylint: disable=line-too-long
+                    'project_name':submission['data'].get('projectAddress'),
+                    'project_id':submission['data'].get('bluebeamId'),
+                    'files':utils.get_files(submission)},
+                export_id=export_obj.guid
+            )
+            db_session.commit()
+
+            bluebeam_export.apply_async(
+                args=(export_obj.guid,),
+                serializer='pickle'
+            )
+    except Exception as err:    # pylint: disable=broad-except
+        print("Encountered error when querying Building Permits API: {0}".format(err))
+        print(traceback.format_exc())
+        raise err
+    finally:
+        db_session.commit()
+        db_session.close()
 
 def upload_files(project_id, upload_dir_id, files, access_token):
     """
@@ -224,27 +284,36 @@ def upload_files(project_id, upload_dir_id, files, access_token):
         # cleanup
         shutil.rmtree(tmp_dir)
 
-def log_status(status, submission_data):
+def format_project_id(project_id):
+    """
+        adds dashes to a bluebeam project id
+    """
+    if len(project_id) == 9 and project_id.isdigit():
+        return "{}-{}-{}".format(
+            project_id[:3],
+            project_id[3:6],
+            project_id[6:]
+        )
+
+    return project_id
+
+def log_status(status, formio_id):
     """
         log status to google sheets
     """
     try:
-        logger_settings = submission_data.get('logger')
-        google_settings = None
-        if logger_settings is not None and 'google_sheets' in logger_settings:
-            google_settings = logger_settings.get('google_sheets')
-            google_settings['label_value_map'] = {
-                google_settings['status_column_label']:status
-            }
-            response = requests.patch(
-                '{0}/rows/{1}'.format(SPREADSHEETS_URL, submission_data['_id']),
-                headers={'x-apikey':SPREADSHEETS_API_KEY},
-                json=google_settings
-            )
-            response.raise_for_status()
+        status_response = requests.patch(
+            '{0}/applications/{1}'.format(
+                os.environ.get('BUILDING_PERMITS_URL').rstrip('/'),
+                formio_id),
+            headers={'x-apikey':os.environ.get('BUILDING_PERMITS_API_KEY')},
+            json=status
+        )
+        status_response.raise_for_status()
     except Exception as err: # pylint: disable=broad-except
         print("Encountered error in log_status:{0}".format(err))
-        print("log data:{0}".format(google_settings))
+        print("submission_id:{0}".format(formio_id))
+        print("status:{0}".format(status))
         raise err
 
 def upload_zip(access_token, project_id, file_path, upload_dir_id):

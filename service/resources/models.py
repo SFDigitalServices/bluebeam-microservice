@@ -11,13 +11,6 @@ from sqlalchemy.dialects.postgresql import UUID
 
 BASE = declarative_base()
 
-REQUIRED_LOGGER_PARAMS = [
-        'spreadsheet_key',
-        'worksheet_title',
-        'id_column_label',
-        'status_column_label'
-    ]
-
 class SubmissionModel(BASE):
     # pylint: disable=too-few-public-methods
     """Map Submission object to db"""
@@ -48,10 +41,12 @@ class SubmissionModel(BASE):
             return value[:max_len]
         return value
 
-def create_submission(db_session, json_data):
+def create_submission(db_session, json_data, export_id=None):
     """helper function for creating a submission"""
     validate(json_data)
     submission = SubmissionModel(data=json_data)
+    if export_id is not None:
+        submission.export_status_guid = export_id
     db_session.add(submission)
     db_session.commit()
     return submission
@@ -74,17 +69,6 @@ def validate(json_params):
             if not 'originalName' in f:
                 raise Exception("missing originalName in file json")
 
-    # _id is required for logging
-    if 'logger' in json_params:
-        if '_id' not in json_params:
-            raise Exception("_id is required for logging")
-        if 'google_sheets' in json_params['logger']:
-            missing_msg = "Missing {0} setting in google sheets logger"
-
-            for param in REQUIRED_LOGGER_PARAMS:
-                if param not in json_params['logger']['google_sheets']:
-                    raise Exception(missing_msg.format(param))
-
     return json_params
 
 def is_url(url):
@@ -105,10 +89,10 @@ class ExportStatusModel(BASE):
     date_finished = sa.Column('date_finished', sa.DateTime)
     result = sa.Column('result', sa.JSON)
 
-def create_export(db_session, bluebeam_username):
+def create_export(db_session):
     """helper function to create a bluebeam export"""
     guid = uuid.uuid4()
-    export = ExportStatusModel(guid=guid, bluebeam_username=bluebeam_username)
+    export = ExportStatusModel(guid=guid)
     db_session.add(export)
     db_session.commit()
     return export
@@ -119,3 +103,10 @@ class UserModel(BASE):
     __tablename__ = "user"
     id = sa.Column('id', sa.Integer, primary_key=True)
     email = sa.Column('email', sa.String(256))
+
+class TokenModel(BASE):
+    # pylint: disable=too-few-public-methods
+    """Map Token object to db fields"""
+    __tablename__ = "token"
+    id = sa.Column('id', sa.Integer, primary_key=True)
+    value = sa.Column('value', sa.LargeBinary)

@@ -14,3 +14,10 @@ imports = ('tasks',)
 
 task_serializer = 'pickle'
 accept_content = ['pickle', 'application/x-python-serialize', 'json', 'application/json']
+
+beat_schedule = {
+    "scheduler": {
+        "task": "tasks.scheduler",
+        "schedule": int(os.environ.get('CELERY_BEAT_SCHEDULE', '300')) # default 5min
+    }
+}
