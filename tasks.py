@@ -9,8 +9,11 @@ import tempfile
 import zipfile
 import shutil
 import traceback
+import json
+from types import SimpleNamespace
 import requests
 import celery
+import jsend
 from kombu import serialization
 import celeryconfig
 import service.resources.bluebeam as bluebeam
@@ -55,6 +58,8 @@ def bluebeam_export(self, export_id):
 
         project_id = submission.data.get('project_id', None)
         upload_dir_id = None
+        webhook = submission.data.get('_webhook', None)
+
         try:
             if project_id and project_id is not None:
                 # resubmission
@@ -102,8 +107,16 @@ def bluebeam_export(self, export_id):
                     )
 
                     # assign user permissions
-                    users = db_session.query(UserModel).all()
+                    if webhook:
+                        users = list(map(
+                            lambda user: SimpleNamespace(**user),
+                            webhook.get('users')
+                        ))
+                    else:
+                        users = db_session.query(UserModel).all()
+
                     bluebeam.assign_user_permissions(access_token, project_id, users)
+
                 except Exception as err: # pylint: disable=broad-except
                     # delete project in bluebeam if it was created
                     print("Exception caught: {0}".format(project_id))
@@ -114,13 +127,17 @@ def bluebeam_export(self, export_id):
                             pass
                     raise err
 
-            # log success
-            log_status(
-                {
-                    'actionState':project_id,
-                    'bluebeamStatus':'done'
-                },
-                submission.data.get('_id'))
+            if webhook:
+                trigger_webhook(
+                    submission.data.get('_webhook'), {"bluebeam_project_id": project_id})
+            else:
+                # log success
+                log_status(
+                    {
+                        'actionState':project_id,
+                        'bluebeamStatus':'done'
+                    },
+                    submission.data.get('_id'))
 
             # finished exporting this submission
             statuses['success'].append({
@@ -142,16 +159,23 @@ def bluebeam_export(self, export_id):
                 'err': err_msg
             })
 
-            # log error
-            try:
-                log_status(
-                    {
-                        'actionState':'Error: {}'.format(err_msg),
-                        'bluebeamStatus':'Error'
-                    },
-                    submission.data.get('_id'))
-            except Exception: #pylint: disable=broad-except
-                pass
+            if webhook:
+                trigger_webhook(
+                    submission.data.get('_webhook'),
+                    {"bluebeam_project_id": project_id},
+                    'Error: {}'.format(err_msg)
+                )
+            else:
+                # log error
+                try:
+                    log_status(
+                        {
+                            'actionState':'Error: {}'.format(err_msg),
+                            'bluebeamStatus':'Error'
+                        },
+                        submission.data.get('_id'))
+                except Exception: #pylint: disable=broad-except
+                    pass
 
         # commit update this submission immediately
         db_session.commit()
@@ -339,3 +363,25 @@ def upload_zip(access_token, project_id, file_path, upload_dir_id):
             )
     # cleanup
     shutil.rmtree(tmp_dir)
+
+def trigger_webhook(webhook, payload, err_msg=None):
+    """
+        Trigger webhook
+    """
+    try:
+        if err_msg:
+            json_payload = jsend.fail(err_msg)
+        else:
+            json_payload = jsend.success(payload)
+
+        status_response = requests.post(
+            os.environ.get("WEBHOOK_{0}_URL".format(webhook.get('type'))),
+            headers={'x-apikey':os.environ.get("WEBHOOK_{0}_API_KEY".format(webhook.get('type')))},
+            params=webhook.get('params', None),
+            json=json_payload
+        )
+        status_response.raise_for_status()
+    except Exception as err: # pylint: disable=broad-except
+        print("Encountered error in trigger_webhook:{0}".format(err))
+        print("Payload:{0}".format(json.dumps(payload)))
+        raise err
