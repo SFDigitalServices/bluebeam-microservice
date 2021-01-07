@@ -32,6 +32,8 @@ def mock_env_access_key(monkeypatch):
     monkeypatch.setenv("BLUEBEAM_ACTION_STATE_VALUE", "Bluebeam Q")
     monkeypatch.setenv("ENCRYPTION_KEY", "ABCD1234")
     monkeypatch.setenv("CELERY_BEAT_SCHEDULE", "300")
+    monkeypatch.setenv("WEBHOOK_ABC_URL", "https://abc.service/endpoint")
+    monkeypatch.setenv("WEBHOOK_ABC_API_KEY", "apikey123")
 
 @pytest.fixture
 def mock_env_no_access_key(monkeypatch):

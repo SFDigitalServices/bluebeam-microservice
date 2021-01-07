@@ -4,6 +4,7 @@
 """Tests for microservice"""
 import json
 import uuid
+import copy
 from unittest.mock import patch, Mock
 import jsend
 import requests
@@ -109,6 +110,36 @@ def test_submission(mock_env_access_key, client):
         json=submission_post_data
     )
     assert response.status_code == 500
+
+def test_submission_webhook(mock_env_access_key, client):
+    # pylint: disable=unused-argument
+    """Test submission with webhook """
+    # webhook not supported
+
+    submission_post_data = copy.deepcopy(mocks.SUBMISSION_POST_DATA_WEBHOOK)
+    submission_post_data['_webhook']['type'] = 'XYZ'
+
+    response = client.simulate_post(
+        '/submission',
+        json=submission_post_data
+    )
+    assert response.status_code == 500
+
+    # webhook
+
+    # clear up entries in db
+    test_utils.finish_submissions_exports()
+
+    response = client.simulate_post(
+        '/submission',
+        json=mocks.SUBMISSION_POST_DATA_WEBHOOK
+    )
+
+    assert response.status_code == 200
+
+    # clear out the queue
+    queue.control.purge()
+
 
 def test_export_status(mock_env_access_key, client):
     # pylint: disable=unused-argument

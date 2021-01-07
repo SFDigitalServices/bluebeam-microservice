@@ -56,6 +56,32 @@ Get code coverage report
 Open with cURL or web browser
 > $ curl --header "ACCESS_KEY: 123456" http://127.0.0.1:8000/welcome
 
+Create bluebeam submission with webhook
+> $ curl --request POST 'http://127.0.0.1:8000/submission' \
+--header 'ACCESS_KEY: 123456' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "project_name": "123 MAIN ST",
+    "email": "hello@world.com",
+    "phone": "(111) 111-1111",
+    "name": "First Last",
+    "files": [
+        {
+            "url": "https://local/sample.pdf",
+            "originalName": "Sample File"
+        }
+    ],
+    "_webhook": {
+        "type": "WEBHOOK_TYPE",
+        "params": {},
+        "users": [
+            {
+                "email": "hello@world.com"
+            }
+        ]
+    }
+}'
+
 ## Development 
 Auto-reload on code changes
 > $ ACCESS_KEY=123456 pipenv run gunicorn --reload 'service.microservice:start_service()'
