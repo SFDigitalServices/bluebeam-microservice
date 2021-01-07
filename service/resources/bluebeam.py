@@ -20,12 +20,13 @@ BLUEBEAM_AUTH_PATH = '/auth/oauth/authorize'
 BLUEBEAM_TOKEN_PATH = '/auth/token'
 BLUEBEAM_API_BASE_URL = os.environ.get('BLUEBEAM_API_BASE_URL')
 
-UPLOAD_DIR_NAME = "2.DOCUMENTS FOR REVIEW"
+UPLOAD_DIR_NAME = "3.DOCUMENTS FOR REVIEW"
 SUBMITTAL_DIR_NAME = "SUBMITTAL"
 DIRECTORY_STRUCTURE = [
     {"name": "CCSF EPR", "subdirs":[
         {"name": "A.PERMIT SUBMITTAL", "subdirs":[
             {"name": "1.PERMIT FORMS"},
+            {"name": "2.ROUTING FORMS"},
             {"name": UPLOAD_DIR_NAME, "pdf_uploads": True} # there can be only one
         ]},
         {"name": "B.APPROVED DOCUMENTS", "subdirs":[
