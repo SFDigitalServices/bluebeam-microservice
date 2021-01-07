@@ -207,6 +207,31 @@ SUBMISSION_POST_DATA_ZIP = {
     }]
 }
 
+SUBMISSION_POST_DATA_WEBHOOK = {
+    "project_name": "123 Market St.",
+    "email": "test@test.com",
+    "phone": "415-867-5309",
+    "name": "Jenny",
+    "files": [{
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "originalName": "dummy.pdf"
+    }],
+    "_webhook": {
+        "type": "ABC",
+        "params": {
+            "ext_id":"12345"
+        },
+        "users": [
+            {
+                "email": "hello@local"
+            },
+            {
+                "email": "world@local"
+            }
+        ]
+    }
+}
+
 RESUBMISSION_POST_DATA = {
     "project_name": "1231 Stevenson",
     "project_id": "123-456-789",

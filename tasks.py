@@ -159,23 +159,23 @@ def bluebeam_export(self, export_id):
                 'err': err_msg
             })
 
-            if webhook:
-                trigger_webhook(
-                    submission.data.get('_webhook'),
-                    {"bluebeam_project_id": project_id},
-                    'Error: {}'.format(err_msg)
-                )
-            else:
+            try:
+                if webhook:
+                    trigger_webhook(
+                        submission.data.get('_webhook'),
+                        {"bluebeam_project_id": project_id},
+                        'Error: {}'.format(err_msg)
+                    )
+                else:
                 # log error
-                try:
                     log_status(
                         {
                             'actionState':'Error: {}'.format(err_msg),
                             'bluebeamStatus':'Error'
                         },
                         submission.data.get('_id'))
-                except Exception: #pylint: disable=broad-except
-                    pass
+            except Exception: #pylint: disable=broad-except
+                pass
 
         # commit update this submission immediately
         db_session.commit()
@@ -370,7 +370,7 @@ def trigger_webhook(webhook, payload, err_msg=None):
     """
     try:
         if err_msg:
-            json_payload = jsend.fail(err_msg)
+            json_payload = jsend.error(err_msg)
         else:
             json_payload = jsend.success(payload)
 
